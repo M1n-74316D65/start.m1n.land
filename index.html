@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <meta charset="utf-8" />
 <meta name="color-scheme" content="dark light" />
 <meta name="robots" content="noindex" />
@@ -45,8 +45,8 @@
         ['G', { name: 'GitHub', searchTemplate: '/search?q={}', url: 'https://github.com' }],
         ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard' }],
         ['B', { name: 'Supabase', url: 'https://supabase.com/dashboard/projects' }],
-        ['P', { name: 'Pocket', url: 'https://getpocket.com/saves' }],
-        ['N', { name: 'Nextcloud', url: 'https://nextcloud.m1n.omg.lol' }],
+        ['P', { name: 'Brace', url: 'https://brace.to' }],
+        ['N', { name: 'Justnote', url: 'https://justnote.cc' }],
         ['A', { name: 'Audiobooks', url: 'https://audio.m1n.omg.lol/library/76869b27-fac9-4e88-ba73-2c003c19fca1' }],
         ['Y', { name: 'YouTube', searchTemplate: '/results?search_query={}', url: 'https://youtube.com' }],
         // ['aud', { name: 'Audible', url: 'https://www.audible.com/' }],
@@ -275,7 +275,12 @@
         }
     </style>
     <dialog class="dialog">
-        <form autocomplete="off" class="form" method="dialog" spellcheck="false">
+        <form
+            autocomplete="off"
+            class="form"
+            method="dialog"
+            spellcheck="false"
+        >
             <input class="input" title="search" type="text" />
             <menu class="suggestions"></menu>
         </form>
@@ -310,7 +315,10 @@
             this.#suggestions = clone.querySelector('.suggestions');
             this.#form.addEventListener('submit', this.#onSubmit, false);
             this.#input.addEventListener('input', this.#onInput);
-            this.#suggestions.addEventListener('click', this.#onSuggestionClick);
+            this.#suggestions.addEventListener(
+                'click',
+                this.#onSuggestionClick
+            );
             document.addEventListener('keydown', this.#onKeydown);
             this.shadowRoot.append(clone);
         }
@@ -348,7 +356,9 @@
         }
 
         static #isUrl(s) {
-            return /^((https?:\/\/)?[\w-]+(\.[\w-]+)+\.?(:\d+)?(\/\S*)?)$/i.test(s);
+            return /^((https?:\/\/)?[\w-]+(\.[\w-]+)+\.?(:\d+)?(\/\S*)?)$/i.test(
+                s
+            );
         }
 
         static #compareKey(key) {
@@ -374,7 +384,9 @@
             const compareQuery = this.#compareKey(query);
 
             if (this.#isUrl(query)) {
-                const url = this.#hasProtocol(query) ? query : `https://${query}`;
+                const url = this.#hasProtocol(query)
+                    ? query
+                    : `https://${query}`;
                 return { query, url };
             }
 
@@ -390,8 +402,14 @@
             const commandPartCommand = this.#getCommand(commandPart);
             if (commandPartCommand) {
                 const search = searchPart ? searchPart.trim() : '';
-                const template = new URL(commandPartCommand.searchTemplate ?? '', commandPartCommand.url);
-                const url = this.#formatSearchUrl(decodeURI(template.href), search);
+                const template = new URL(
+                    commandPartCommand.searchTemplate ?? '',
+                    commandPartCommand.url
+                );
+                const url = this.#formatSearchUrl(
+                    decodeURI(template.href),
+                    search
+                );
                 return { key: commandPart, query, search, url };
             }
 
@@ -405,7 +423,10 @@
                 return { key: pathKey, path, query, url };
             }
 
-            const url = this.#formatSearchUrl(CONFIG.defaultSearchTemplate, query);
+            const url = this.#formatSearchUrl(
+                CONFIG.defaultSearchTemplate,
+                query
+            );
             return { query, search: query, url };
         };
 
@@ -418,7 +439,11 @@
 
         #execute(query) {
             const target = CONFIG.openLinksInNewTab ? '_blank' : '_self';
-            window.open(Search.#parseQuery(query).url, target, 'noopener noreferrer');
+            window.open(
+                Search.#parseQuery(query).url,
+                target,
+                'noopener noreferrer'
+            );
             this.#close();
         }
 
@@ -430,7 +455,9 @@
                 const activeIndex = Number(active.dataset.index);
                 nextIndex = previous ? activeIndex - 1 : activeIndex + 1;
             } else {
-                nextIndex = previous ? this.#suggestions.childElementCount - 1 : 0;
+                nextIndex = previous
+                    ? this.#suggestions.childElementCount - 1
+                    : 0;
             }
 
             const next = this.#suggestions.children[nextIndex];
@@ -446,18 +473,24 @@
                 return;
             }
 
-            const command = Search.#getCommand(parsedQuery.key || parsedQuery.query);
+            const command = Search.#getCommand(
+                parsedQuery.key || parsedQuery.query
+            );
             let suggestions = command?.suggestions ?? [];
 
-            if (parsedQuery.search && suggestions.length < CONFIG.suggestionLimit) {
+            if (
+                parsedQuery.search &&
+                suggestions.length < CONFIG.suggestionLimit
+            ) {
                 const ddgSuggestions = await Search.#fetchDuckDuckGoSuggestions(
                     parsedQuery.search
                 );
                 suggestions = suggestions.concat(
                     parsedQuery.key
                         ? ddgSuggestions.map(
-                            (s) => `${parsedQuery.key}${CONFIG.commandSearchDelimiter}${s}`
-                        )
+                              (s) =>
+                                  `${parsedQuery.key}${CONFIG.commandSearchDelimiter}${s}`
+                          )
                         : ddgSuggestions
                 );
             }
@@ -472,10 +505,10 @@
             const filteredSuggestions = CONFIG.commandCaseSensitive
                 ? suggestions
                 : suggestions.filter((s) =>
-                    Search.#compareKey(s).startsWith(
-                        Search.#compareKey(parsedQuery.query)
-                    )
-                );
+                      Search.#compareKey(s).startsWith(
+                          Search.#compareKey(parsedQuery.query)
+                      )
+                  );
 
             this.#renderSuggestions(filteredSuggestions, parsedQuery.query);
         };
@@ -550,9 +583,12 @@
                             matchIndex,
                             matchIndex + query.length
                         );
-                        const post = suggestion.slice(matchIndex + query.length);
+                        const post = suggestion.slice(
+                            matchIndex + query.length
+                        );
 
-                        const matchClone = matchTemplate.content.cloneNode(true);
+                        const matchClone =
+                            matchTemplate.content.cloneNode(true);
                         const matchRef = matchClone.querySelector('.match');
                         matchRef.textContent = match;
 
