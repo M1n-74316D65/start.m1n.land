@@ -38,26 +38,71 @@
         suggestionLimit: 4,
     };
 
-    // prettier-ignore
     const COMMANDS = new Map([
-        ['M', { name: 'Mail', suggestions: ['M/pass'], searchTemplate: '/u/0/all-mail#keyword={}', url: 'https://mail.proton.me/u/0/inbox' }],
+        [
+            'M',
+            {
+                name: 'Mail',
+                suggestions: ['M/pass'],
+                searchTemplate: '/u/0/all-mail#keyword={}',
+                url: 'https://mail.proton.me/u/0/inbox',
+            },
+        ],
         ['M/pass', { url: 'https://pass.proton.me/' }],
-        ['G', { name: 'GitHub', searchTemplate: '/search?q={}', url: 'https://github.com' }],
+        [
+            'G',
+            {
+                name: 'GitHub',
+                searchTemplate: '/search?q={}',
+                url: 'https://github.com',
+            },
+        ],
         ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard' }],
-        ['P', { name: 'Supabase', url: 'https://supabase.com/dashboard/projects' }],
+        [
+            'P',
+            {
+                name: 'Supabase',
+                url: 'https://supabase.com/dashboard/projects',
+            },
+        ],
         ['B', { name: 'Brace', url: 'https://brace.to' }],
         ['N', { name: 'Justnote', url: 'https://justnote.cc' }],
-        ['A', { name: 'Audiobooks', url: 'https://audio.m1n.omg.lol/library/76869b27-fac9-4e88-ba73-2c003c19fca1' }],
-        ['Y', { name: 'YouTube', searchTemplate: '/results?search_query={}', url: 'https://youtube.com' }],
-        // ['aud', { name: 'Audible', url: 'https://www.audible.com/' }],
+        [
+            'A',
+            {
+                name: 'Audiobooks',
+                url: 'https://audio.m1n.omg.lol/library/76869b27-fac9-4e88-ba73-2c003c19fca1',
+            },
+        ],
+        [
+            'Y',
+            {
+                name: 'YouTube',
+                searchTemplate: '/results?search_query={}',
+                url: 'https://youtube.com',
+            },
+        ],
         ['H', { name: 'Hacker News', url: 'https://news.ycombinator.com' }],
-        ['I', { name: 'Pico.sh', suggestions: ['I/local'], url: 'https://pico.sh/' }],
+        [
+            'I',
+            {
+                name: 'Pico.sh',
+                suggestions: ['I/local'],
+                url: 'https://pico.sh/',
+            },
+        ],
         ['I/local', { url: 'http://localhost:1337/' }],
         ['F', { name: 'Cloudflare', url: 'https://dash.cloudflare.com' }],
         ['J', { name: 'Jellyfin', url: 'https://jellyfin.m1n.omg.lol' }],
         ['C', { name: 'ChatGPT', url: 'https://chat.openai.com/' }],
-        // ['m', { name: 'Morphic', url: 'https://www.morphic.sh/' }],
-        ['S', { name: 'Server', suggestions: ['S/memos', 'S/torrent', 'S/audio'], url: 'http://192.168.1.139/#' }],
+        [
+            'S',
+            {
+                name: 'Server',
+                suggestions: ['S/memos', 'S/torrent', 'S/audio'],
+                url: 'http://192.168.1.139/#',
+            },
+        ],
         ['S/memos', { url: 'http://192.168.1.139:5230' }],
         ['S/torrent', { url: 'http://192.168.1.139:1340/#/' }],
         ['S/audio', { url: 'http://192.168.1.139:13378' }],
@@ -154,6 +199,7 @@
             const commands = clone.querySelector('.commands');
             const commandTemplate = document.getElementById('command-template');
 
+            const fragment = document.createDocumentFragment();
             for (const [key, { name, url }] of COMMANDS.entries()) {
                 if (!name || !url) continue;
                 const clone = commandTemplate.content.cloneNode(true);
@@ -162,8 +208,9 @@
                 if (CONFIG.openLinksInNewTab) command.target = '_blank';
                 clone.querySelector('.key').innerText = key;
                 clone.querySelector('.name').innerText = name;
-                commands.append(clone);
+                fragment.appendChild(clone);
             }
+            commands.appendChild(fragment);
 
             this.shadowRoot.append(clone);
         }
@@ -313,13 +360,17 @@
             this.#form = clone.querySelector('.form');
             this.#input = clone.querySelector('.input');
             this.#suggestions = clone.querySelector('.suggestions');
-            this.#form.addEventListener('submit', this.#onSubmit, false);
-            this.#input.addEventListener('input', this.#onInput);
+            this.#form.addEventListener(
+                'submit',
+                this.#onSubmit.bind(this),
+                false
+            );
+            this.#input.addEventListener('input', this.#onInput.bind(this));
             this.#suggestions.addEventListener(
                 'click',
-                this.#onSuggestionClick
+                this.#onSuggestionClick.bind(this)
             );
-            document.addEventListener('keydown', this.#onKeydown);
+            document.addEventListener('keydown', this.#onKeydown.bind(this));
             this.shadowRoot.append(clone);
         }
 
@@ -330,20 +381,16 @@
         static #fetchDuckDuckGoSuggestions(search) {
             return new Promise((resolve) => {
                 window.autocompleteCallback = (res) => {
-                    const suggestions = [];
-
-                    for (const item of res) {
-                        if (item.phrase === search.toLowerCase()) continue;
-                        suggestions.push(item.phrase);
-                    }
-
+                    const suggestions = res
+                        .filter((item) => item.phrase !== search.toLowerCase())
+                        .map((item) => item.phrase);
                     resolve(suggestions);
                 };
 
                 const script = document.createElement('script');
                 document.querySelector('head').appendChild(script);
                 script.src = `https://duckduckgo.com/ac/?callback=autocompleteCallback&q=${search}`;
-                script.onload = script.remove;
+                script.onload = () => script.remove();
             });
         }
 
@@ -379,7 +426,7 @@
             }
         }
 
-        static #parseQuery = (raw) => {
+        static #parseQuery(raw) {
             const query = raw.trim();
             const compareQuery = this.#compareKey(query);
 
@@ -428,7 +475,7 @@
                 query
             );
             return { query, search: query, url };
-        };
+        }
 
         #close() {
             this.#input.value = '';
@@ -465,7 +512,7 @@
             else this.#input.focus();
         }
 
-        #onInput = async () => {
+        async #onInput() {
             const parsedQuery = Search.#parseQuery(this.#input.value);
 
             if (!parsedQuery.query) {
@@ -511,16 +558,14 @@
                   );
 
             this.#renderSuggestions(filteredSuggestions, parsedQuery.query);
-        };
+        }
 
-        #onKeydown = (e) => {
+        #onKeydown(e) {
             if (!this.#dialog.open) {
                 this.#dialog.show();
                 this.#input.focus();
 
                 requestAnimationFrame(() => {
-                    // close the search dialog before the next repaint if a character is
-                    // not produced (e.g. if you type shift, control, alt etc.)
                     if (!this.#input.value) this.#close();
                 });
 
@@ -548,23 +593,24 @@
                 e.preventDefault();
                 this.#focusNextSuggestion(true);
             }
-        };
+        }
 
-        #onSubmit = () => {
+        #onSubmit() {
             this.#execute(this.#input.value);
-        };
+        }
 
-        #onSuggestionClick = (e) => {
+        #onSuggestionClick(e) {
             const ref = e.target.closest('.suggestion');
             if (!ref) return;
             this.#execute(ref.dataset.suggestion);
-        };
+        }
 
         #renderSuggestions(suggestions, query) {
             this.#suggestions.innerHTML = '';
             const template = document.getElementById('suggestion-template');
             const matchTemplate = document.getElementById('match-template');
 
+            const fragment = document.createDocumentFragment();
             suggestions
                 .slice(0, CONFIG.suggestionLimit)
                 .forEach((suggestion, index) => {
@@ -601,8 +647,10 @@
                         ref.textContent = suggestion;
                     }
 
-                    this.#suggestions.appendChild(clone);
+                    fragment.appendChild(clone);
                 });
+
+            this.#suggestions.appendChild(fragment);
         }
     }
 
