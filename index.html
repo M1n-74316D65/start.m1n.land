@@ -29,21 +29,32 @@
 </style>
 
 <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js').then(
-                (registration) => {
-                    console.log(
-                        'ServiceWorker registration successful with scope: ',
-                        registration.scope
-                    );
-                },
-                (error) => {
-                    console.log('ServiceWorker registration failed: ', error);
-                }
-            );
-        });
+    // Constants
+    const SERVICE_WORKER_PATH = '/service-worker.js';
+    const SERVICE_WORKER_SCOPE_MSG =
+        'ServiceWorker registration successful with scope: ';
+    const SERVICE_WORKER_ERROR_MSG = 'ServiceWorker registration failed: ';
+
+    // Service Worker Registration
+    function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register(SERVICE_WORKER_PATH).then(
+                    (registration) => {
+                        console.log(
+                            SERVICE_WORKER_SCOPE_MSG,
+                            registration.scope
+                        );
+                    },
+                    (error) => {
+                        console.log(SERVICE_WORKER_ERROR_MSG, error);
+                    }
+                );
+            });
+        }
     }
+
+    // Configuration
     const CONFIG = {
         commandPathDelimiter: '/',
         commandSearchDelimiter: ' ',
@@ -53,6 +64,7 @@
         suggestionLimit: 4,
     };
 
+    // Commands
     const COMMANDS = new Map([
         [
             'M',
@@ -124,6 +136,9 @@
         ['0', { name: 'Local', url: 'http://localhost:3000' }],
         ['1', { name: 'M1n', url: 'https://m1n.land/' }],
     ]);
+
+    // Initialize
+    registerServiceWorker();
 </script>
 
 <template id="commands-template">
@@ -137,6 +152,7 @@
             overflow: hidden;
             padding: 0;
             width: 100vw;
+            border-radius: var(--border-radius);
         }
 
         .command {
@@ -157,7 +173,8 @@
             transition: opacity var(--transition-speed);
         }
 
-        .command:where(:focus, :hover)::after {
+        .command:focus::after,
+        .command:hover::after {
             opacity: 0.1;
         }
 
@@ -173,14 +190,9 @@
             transition: color var(--transition-speed);
         }
 
-        .command:where(:focus, :hover) .name {
+        .command:focus .name,
+        .command:hover .name {
             color: var(--color-text);
-        }
-
-        @media (min-width: 320px) {
-            .commands {
-                border-radius: var(--border-radius);
-            }
         }
 
         @media (min-width: 900px) {
@@ -209,25 +221,44 @@
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
+            this.render();
+        }
+
+        render() {
             const template = document.getElementById('commands-template');
             const clone = template.content.cloneNode(true);
-            const commands = clone.querySelector('.commands');
+            const commandsContainer = clone.querySelector('.commands');
             const commandTemplate = document.getElementById('command-template');
 
+            const fragment = this.createCommandsFragment(commandTemplate);
+            commandsContainer.appendChild(fragment);
+
+            this.shadowRoot.append(clone);
+        }
+
+        createCommandsFragment(commandTemplate) {
             const fragment = document.createDocumentFragment();
             for (const [key, { name, url }] of COMMANDS.entries()) {
                 if (!name || !url) continue;
-                const clone = commandTemplate.content.cloneNode(true);
-                const command = clone.querySelector('.command');
-                command.href = url;
-                if (CONFIG.openLinksInNewTab) command.target = '_blank';
-                clone.querySelector('.key').innerText = key;
-                clone.querySelector('.name').innerText = name;
-                fragment.appendChild(clone);
+                const commandClone = this.createCommandElement(
+                    commandTemplate,
+                    key,
+                    name,
+                    url
+                );
+                fragment.appendChild(commandClone);
             }
-            commands.appendChild(fragment);
+            return fragment;
+        }
 
-            this.shadowRoot.append(clone);
+        createCommandElement(template, key, name, url) {
+            const clone = template.content.cloneNode(true);
+            const command = clone.querySelector('.command');
+            command.href = url;
+            if (CONFIG.openLinksInNewTab) command.target = '_blank';
+            clone.querySelector('.key').innerText = key;
+            clone.querySelector('.name').innerText = name;
+            return clone;
         }
     }
 
@@ -238,8 +269,7 @@
     <style>
         input,
         button {
-            -moz-appearance: none;
-            -webkit-appearance: none;
+            appearance: none;
             background: transparent;
             border: 0;
             display: block;
@@ -300,7 +330,8 @@
             z-index: 1;
         }
 
-        .suggestion:where(:focus, :hover) {
+        .suggestion:focus,
+        .suggestion:hover {
             color: var(--color-background);
         }
 
@@ -316,7 +347,8 @@
             z-index: -1;
         }
 
-        .suggestion:where(:focus, :hover)::before {
+        .suggestion:focus::before,
+        .suggestion:hover::before {
             opacity: 1;
             transform: translateY(0);
         }
@@ -326,7 +358,8 @@
             transition: color var(--transition-speed);
         }
 
-        .suggestion:where(:focus, :hover) .match {
+        .suggestion:focus .match,
+        .suggestion:hover .match {
             color: var(--color-background);
         }
 
@@ -369,12 +402,21 @@
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
+            this.#initializeTemplate();
+            this.#initializeEventListeners();
+        }
+
+        #initializeTemplate() {
             const template = document.getElementById('search-template');
             const clone = template.content.cloneNode(true);
             this.#dialog = clone.querySelector('.dialog');
             this.#form = clone.querySelector('.form');
             this.#input = clone.querySelector('.input');
             this.#suggestions = clone.querySelector('.suggestions');
+            this.shadowRoot.append(clone);
+        }
+
+        #initializeEventListeners() {
             this.#form.addEventListener(
                 'submit',
                 this.#onSubmit.bind(this),
@@ -386,7 +428,6 @@
                 this.#onSuggestionClick.bind(this)
             );
             document.addEventListener('keydown', this.#onKeydown.bind(this));
-            this.shadowRoot.append(clone);
         }
 
         static #escapeRegexCharacters(s) {
@@ -460,7 +501,6 @@
             const [commandPart, searchPart] = query.split(
                 new RegExp(`${CONFIG.commandSearchDelimiter}(.*)`)
             );
-
             const commandPartCommand = this.#getCommand(commandPart);
             if (commandPartCommand) {
                 const search = searchPart ? searchPart.trim() : '';
@@ -478,7 +518,6 @@
             const [pathKey, path] = query.split(
                 new RegExp(`${CONFIG.commandPathDelimiter}(.*)`)
             );
-
             const pathKeyCommand = this.#getCommand(pathKey);
             if (pathKeyCommand) {
                 const url = `${new URL(pathKeyCommand.url).origin}/${path || ''}`;
@@ -592,11 +631,7 @@
                 return;
             }
 
-            const alt = e.altKey ? 'alt-' : '';
-            const ctrl = e.ctrlKey ? 'ctrl-' : '';
-            const meta = e.metaKey ? 'meta-' : '';
-            const shift = e.shiftKey ? 'shift-' : '';
-            const modifierPrefixedKey = `${alt}${ctrl}${meta}${shift}${e.key}`;
+            const modifierPrefixedKey = this.#getModifierPrefixedKey(e);
 
             if (/^(ArrowDown|Tab|ctrl-n)$/.test(modifierPrefixedKey)) {
                 e.preventDefault();
@@ -608,6 +643,14 @@
                 e.preventDefault();
                 this.#focusNextSuggestion(true);
             }
+        }
+
+        #getModifierPrefixedKey(e) {
+            const alt = e.altKey ? 'alt-' : '';
+            const ctrl = e.ctrlKey ? 'ctrl-' : '';
+            const meta = e.metaKey ? 'meta-' : '';
+            const shift = e.shiftKey ? 'shift-' : '';
+            return `${alt}${ctrl}${meta}${shift}${e.key}`;
         }
 
         #onSubmit() {
@@ -673,6 +716,7 @@
 </script>
 
 <style>
+    /* Global Styles */
     html {
         background-color: var(--color-background);
         font-family: var(--font-family);
@@ -684,16 +728,17 @@
         margin: 0;
     }
 
+    /* Main Container Styles */
     main {
-        align-items: center;
-        box-sizing: border-box;
         display: flex;
+        align-items: center;
         justify-content: center;
+        box-sizing: border-box;
         min-height: 100dvh;
-        overflow: hidden;
-        padding: calc(var(--space) * 4) var(--space);
-        position: relative;
         width: 100vw;
+        padding: calc(var(--space) * 4) var(--space);
+        overflow: hidden;
+        position: relative;
     }
 </style>
 
