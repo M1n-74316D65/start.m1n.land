@@ -59,7 +59,7 @@
         commandPathDelimiter: '/',
         commandSearchDelimiter: ' ',
         commandCaseSensitive: false,
-        defaultSearchTemplate: 'https://search.brave.com/search?q={}',
+        defaultSearchTemplate: 'https://kagi.com/search?q={}',
         openLinksInNewTab: false,
         suggestionLimit: 4,
     };
@@ -445,7 +445,7 @@
 
                 const script = document.createElement('script');
                 document.querySelector('head').appendChild(script);
-                script.src = `https://duckduckgo.com/ac/?callback=autocompleteCallback&q=${search}`;
+                script.src = `https://kagi.com/api/autosuggest?q=${search}`;
                 script.onload = () => script.remove();
             });
         }
