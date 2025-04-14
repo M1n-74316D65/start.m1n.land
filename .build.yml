@@ -5,6 +5,7 @@ secrets:
 
 tasks:
   - mirror-to-github: |
+      ssh-keyscan github.com >> ~/.ssh/known_hosts
       cd start.m1n.land
       git remote add github git@github.com:M1n-74316D65/start.m1n.land.git || true
       git push --mirror github
