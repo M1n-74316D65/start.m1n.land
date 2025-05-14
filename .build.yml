@@ -1,12 +1,27 @@
 image: alpine/edge
 
+packages:
+    - nodejs
+
+environment:
+    site: start.m1n.land
+
 secrets:
-  - f9b0470f-3ea4-4b49-aeb9-99e9f48d75e5
+    - 9842a2f8-3365-4326-a3c0-9f155df7ae10 # VERCEL_TOKEN
 
 tasks:
-  - mirror-to-github: |
-      ssh-keyscan github.com >> ~/.ssh/known_hosts
-      cd start.m1n.land
-      git remote add github git@github.com:M1n-74316D65/start.m1n.land.git || true
-      git push --mirror github
+    - deploy: |
+          cd $site
+          echo "Installing deployment dependencies..."
+          curl -fsSL https://bun.sh/install | bash
+          export BUN_INSTALL="$HOME/.bun"
+          export PATH="$BUN_INSTALL/bin:$PATH"
+          bun install -g vercel
 
+          # Deploy to Vercel
+          set +x  # Disable command echoing for security
+          export VERCEL_TOKEN=$(cat ~/.VERCEL_TOKEN)
+          echo "Deploying to Vercel..."
+          vercel link -p $site -y --token $VERCEL_TOKEN
+          vercel deploy --prod --token $VERCEL_TOKEN >/dev/null 2>&1
+          echo "Deployment completed successfully"
