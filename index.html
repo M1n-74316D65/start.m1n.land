@@ -73,12 +73,10 @@
     [
       'G',
       {
-        name: 'Sourcehut',
-        suggestions: ['G/github'],
-        url: 'https://sr.ht/',
+        name: 'Github',
+        url: 'http://github.com',
       },
     ],
-    ['G/github', { url: 'http://github.com' }],
     ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard' }],
     [
       'B',
@@ -104,7 +102,7 @@
         url: 'https://youtube.com',
       },
     ],
-    ['F', { name: 'RSS feed', url: 'https://owl.report/' }],
+    ['R', { name: 'RSS feed', url: 'https://owl.report/' }],
     ['H', { name: 'Hacker News', url: 'https://news.ycombinator.com' }],
     [
       'P',
@@ -113,20 +111,16 @@
         url: 'https://paste.m1n.land/',
       },
     ],
-    ['C', { name: 'Cloudflare', url: 'https://dash.cloudflare.com' }],
+    ['F', { name: 'Cloudflare', url: 'https://dash.cloudflare.com' }],
     ['E', { name: 'MyMemo', url: 'https://app.mymemo.ai/' }],
+    ['C', { name: 'Claude', url: 'https://claude.ai' }],
     [
       'S',
       {
         name: 'Server',
-        suggestions: ['S/memos', 'S/torrent', 'S/audio'],
         url: 'http://192.168.1.139:8006',
       },
     ],
-    ['S/memos', { url: 'http://192.168.1.139:5230' }],
-    ['S/torrent', { url: 'http://192.168.1.139:1340/#/' }],
-    ['S/audio', { url: 'http://192.168.1.139:13378' }],
-    ['0', { name: 'Local', url: 'http://localhost:3000' }],
     ['1', { name: 'M1n', url: 'https://m1n.land/' }],
   ]);
 
@@ -552,8 +546,8 @@
         suggestions = suggestions.concat(
           parsedQuery.key
             ? ddgSuggestions.map(
-                (s) => `${parsedQuery.key}${CONFIG.commandSearchDelimiter}${s}`
-              )
+              (s) => `${parsedQuery.key}${CONFIG.commandSearchDelimiter}${s}`
+            )
             : ddgSuggestions
         );
       }
@@ -568,10 +562,10 @@
       const filteredSuggestions = CONFIG.commandCaseSensitive
         ? suggestions
         : suggestions.filter((s) =>
-            Search.#compareKey(s).startsWith(
-              Search.#compareKey(parsedQuery.query)
-            )
-          );
+          Search.#compareKey(s).startsWith(
+            Search.#compareKey(parsedQuery.query)
+          )
+        );
 
       this.#renderSuggestions(filteredSuggestions, parsedQuery.query);
     }
