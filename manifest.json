@@ -1,20 +1,43 @@
 {
   "name": "M1n Startpage",
-  "short_name": "Startpage",
-  "start_url": "/my-startpage/index.html",
+  "short_name": "M1n",
+  "description": "Minimal browser homepage for power users",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#E8E8E8",
-  "theme_color": "#E8E8E8",
+  "orientation": "any",
+  "background_color": "#111",
+  "theme_color": "#111",
+  "categories": ["productivity", "utilities"],
   "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32",
+      "type": "image/x-icon"
+    },
     {
       "src": "/images/favicon-7.png",
       "sizes": "128x128",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/images/favicon-8.png",
       "sizes": "256x256",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/favicon-8.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/images/favicon-8.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
