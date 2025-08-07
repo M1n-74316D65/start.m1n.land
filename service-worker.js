@@ -31,6 +31,31 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'UPDATE_CACHE') {
+    event.waitUntil(updateCache());
+  }
+});
+
+async function updateCache() {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(urlsToCache);
+    
+    // Notify all clients that cache has been updated
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({ type: 'CACHE_UPDATED' });
+    });
+  } catch (error) {
+    console.error('Cache update failed:', error);
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.url.startsWith('https://duckduckgo.com/ac/')) {
     return;

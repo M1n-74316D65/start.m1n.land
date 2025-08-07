@@ -55,8 +55,31 @@
           }
         );
       });
+
+      // Listen for cache update notifications from service worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'CACHE_UPDATED') {
+          console.log('PWA cache updated successfully');
+        }
+      });
     }
   }
+
+  // PWA Cache Update Function
+  function updatePWACache() {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'UPDATE_CACHE' });
+      console.log('PWA cache update requested');
+    }
+  }
+
+  // Global keyboard event listener for Ctrl+Shift+R
+  document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey && event.shiftKey && event.key === 'R') {
+      event.preventDefault();
+      updatePWACache();
+    }
+  });
 
   // Configuration
   const CONFIG = {
