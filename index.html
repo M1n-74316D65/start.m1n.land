@@ -18,12 +18,15 @@
     --color-background: #111;
     --color-text-subtle: #888;
     --color-text: #eee;
-    --font-family: -apple-system, Helvetica, sans-serif;
+    --color-focus: #555;
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-size: clamp(16px, 1.6vw, 18px);
     --font-weight-bold: 700;
     --font-weight-normal: 400;
+    --letter-spacing: -0.01em;
     --space: 1rem;
     --transition-speed: 200ms;
+    --transition-easing: cubic-bezier(0.2, 0, 0.2, 1);
   }
 
   @media (prefers-color-scheme: light) {
@@ -31,6 +34,7 @@
       --color-background: #e8e8e8;
       --color-text-subtle: #606060;
       --color-text: #111;
+      --color-focus: #ccc;
     }
   }
 </style>
@@ -168,7 +172,7 @@
       max-width: 20rem;
       overflow: hidden;
       padding: 0;
-      width: 100vw;
+      width: 100%;
       border-radius: var(--border-radius);
     }
 
@@ -179,6 +183,9 @@
       padding: var(--space);
       position: relative;
       text-decoration: none;
+      border-radius: calc(var(--border-radius) / 2);
+      min-height: 44px;
+      align-items: center;
     }
 
     .command::after {
@@ -187,7 +194,7 @@
       inset: 1px;
       opacity: 0.05;
       position: absolute;
-      transition: opacity var(--transition-speed);
+      transition: opacity var(--transition-speed) var(--transition-easing);
     }
 
     .command:focus::after,
@@ -195,21 +202,36 @@
       opacity: 0.1;
     }
 
+    .command:focus {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
+
     .key {
       color: var(--color-text);
       display: inline-block;
       text-align: center;
       width: 3ch;
+      font-weight: var(--font-weight-bold);
+      letter-spacing: var(--letter-spacing);
     }
 
     .name {
       color: var(--color-text-subtle);
-      transition: color var(--transition-speed);
+      transition: color var(--transition-speed) var(--transition-easing);
+      letter-spacing: var(--letter-spacing);
     }
 
     .command:focus .name,
     .command:hover .name {
       color: var(--color-text);
+    }
+
+    @media (min-width: 600px) {
+      .commands {
+        columns: 3;
+        max-width: 32rem;
+      }
     }
 
     @media (min-width: 900px) {
@@ -322,6 +344,12 @@
       padding: 0;
       text-align: center;
       width: 100%;
+      letter-spacing: var(--letter-spacing);
+    }
+
+    .input::placeholder {
+      color: var(--color-text-subtle);
+      opacity: 0.6;
     }
 
     .suggestions {
@@ -342,9 +370,11 @@
       font-size: 1rem;
       padding: var(--space);
       position: relative;
-      transition: color var(--transition-speed);
+      transition: color var(--transition-speed) var(--transition-easing);
       white-space: nowrap;
       z-index: 1;
+      border-radius: calc(var(--border-radius) / 3);
+      outline: 0;
     }
 
     .suggestion:focus,
@@ -352,15 +382,20 @@
       color: var(--color-background);
     }
 
+    .suggestion:focus {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
+
     .suggestion::before {
       background-color: var(--color-text);
-      border-radius: calc(var(--border-radius) / 5);
+      border-radius: inherit;
       content: ' ';
-      inset: calc(var(--space) / 1.5) calc(var(--space) / 3);
+      inset: 0;
       opacity: 0;
       position: absolute;
-      transform: translateY(0.5em);
-      transition: all var(--transition-speed);
+      transform: translateY(0.25em);
+      transition: all var(--transition-speed) var(--transition-easing);
       z-index: -1;
     }
 
@@ -372,7 +407,8 @@
 
     .match {
       color: var(--color-text-subtle);
-      transition: color var(--transition-speed);
+      transition: color var(--transition-speed) var(--transition-easing);
+      font-weight: var(--font-weight-bold);
     }
 
     .suggestion:focus .match,
@@ -388,7 +424,7 @@
   </style>
   <dialog class="dialog">
     <form autocomplete="off" class="form" method="dialog" spellcheck="false">
-      <input class="input" title="search" type="text" />
+      <input class="input" title="search" type="text" placeholder="Type to search..." />
       <menu class="suggestions"></menu>
     </form>
   </dialog>
@@ -705,6 +741,7 @@
     font-family: var(--font-family);
     font-size: var(--font-size);
     line-height: 1.4;
+    letter-spacing: var(--letter-spacing);
   }
 
   body {
@@ -722,6 +759,14 @@
     padding: calc(var(--space) * 4) var(--space);
     overflow: hidden;
     position: relative;
+    opacity: 0;
+    animation: fadeIn 0.4s var(--transition-easing) forwards;
+  }
+
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+    }
   }
 </style>
 
