@@ -1,4 +1,4 @@
-const CACHE_NAME = 'startpage-cache-v2';
+const CACHE_NAME = 'startpage-cache-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -57,28 +57,40 @@ async function updateCache() {
 }
 
 self.addEventListener('fetch', (event) => {
+  // Allow DuckDuckGo autocomplete requests
   if (event.request.url.startsWith('https://duckduckgo.com/ac/')) {
     return;
   }
 
+  // Cache-first strategy for all local resources
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
+    caches.match(event.request).then((cachedResponse) => {
+      // Return cached version immediately if available
+      if (cachedResponse) {
+        return cachedResponse;
       }
       
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
+      // Only fetch if it's a local resource
+      if (event.request.url.startsWith(self.location.origin)) {
+        return fetch(event.request).then((response) => {
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+
           return response;
-        }
-
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+        }).catch(() => {
+          // Return a basic offline response for local resources
+          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
         });
-
-        return response;
-      });
+      }
+      
+      // Let other requests (external sites) pass through normally
+      return fetch(event.request);
     })
   );
 });
