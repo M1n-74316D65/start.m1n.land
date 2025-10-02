@@ -158,6 +158,58 @@
     ['1', { name: 'M1n', url: 'https://m1n.land/' }],
   ]);
 
+  // Hacker News API functionality
+  window.HackerNewsAPI = class HackerNewsAPI {
+    static async fetchTopStories(limit = 10) {
+      try {
+        const response = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
+        const storyIds = await response.json();
+        const topStoryIds = storyIds.slice(0, limit);
+
+        const storyPromises = topStoryIds.map(id => this.fetchStory(id));
+        const stories = await Promise.all(storyPromises);
+
+        return stories.filter(story => story !== null);
+      } catch (error) {
+        console.error('Failed to fetch Hacker News stories:', error);
+        return [];
+      }
+    }
+
+    static async fetchStory(id) {
+      try {
+        const response = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+        return await response.json();
+      } catch (error) {
+        console.error(`Failed to fetch story ${id}:`, error);
+        return null;
+      }
+    }
+
+    static formatTime(timestamp) {
+      const now = Date.now();
+      const storyTime = timestamp * 1000;
+      const diffInHours = Math.floor((now - storyTime) / (1000 * 60 * 60));
+
+      if (diffInHours < 1) {
+        const diffInMinutes = Math.floor((now - storyTime) / (1000 * 60));
+        return `${diffInMinutes}m ago`;
+      } else if (diffInHours < 24) {
+        return `${diffInHours}h ago`;
+      } else {
+        const diffInDays = Math.floor(diffInHours / 24);
+        return `${diffInDays}d ago`;
+      }
+    }
+
+    static formatScore(score) {
+      if (score >= 1000) {
+        return `${(score / 1000).toFixed(1)}k`;
+      }
+      return score.toString();
+    }
+  }
+
   // Initialize
   registerServiceWorker();
 </script>
@@ -734,6 +786,370 @@
   customElements.define('search-component', Search);
 </script>
 
+<template id="news-template">
+  <style>
+    .news-container {
+      margin-top: calc(var(--space) * 4);
+      max-width: 45rem;
+      width: 100%;
+      opacity: 1;
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
+    }
+
+    .news-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space);
+      color: var(--color-text-subtle);
+      font-size: 0.9rem;
+      font-weight: var(--font-weight-bold);
+      letter-spacing: var(--letter-spacing);
+    }
+
+    .news-title {
+      color: var(--color-text);
+      text-decoration: none;
+      transition: color var(--transition-speed) var(--transition-easing);
+    }
+
+    .news-title:hover {
+      color: var(--color-text);
+    }
+
+    .refresh-btn {
+      background: transparent;
+      border: 1px solid var(--color-focus);
+      color: var(--color-text-subtle);
+      padding: 0.25rem 0.75rem;
+      border-radius: calc(var(--border-radius) / 3);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all var(--transition-speed) var(--transition-easing);
+    }
+
+    .refresh-btn:hover {
+      background: var(--color-focus);
+      color: var(--color-text);
+    }
+
+    .refresh-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .news-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--space) * 0.75);
+    }
+
+    .news-item {
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--space) * 0.25);
+      padding: var(--space);
+      border-radius: calc(var(--border-radius) / 2);
+      transition: all var(--transition-speed) var(--transition-easing);
+      text-decoration: none;
+      color: inherit;
+      outline: 0;
+      position: relative;
+    }
+
+    .news-item::after {
+      background: var(--color-text-subtle);
+      content: ' ';
+      inset: 1px;
+      opacity: 0.03;
+      position: absolute;
+      transition: opacity var(--transition-speed) var(--transition-easing);
+      border-radius: inherit;
+    }
+
+    .news-item:focus::after,
+    .news-item:hover::after {
+      opacity: 0.08;
+    }
+
+    .news-item:focus {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
+
+    .news-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space);
+    }
+
+    .news-item-title {
+      color: var(--color-text);
+      font-size: 1rem;
+      font-weight: var(--font-weight-normal);
+      line-height: 1.4;
+      flex: 1;
+      margin: 0;
+      transition: color var(--transition-speed) var(--transition-easing);
+    }
+
+    .news-item:hover .news-item-title {
+      color: var(--color-text);
+    }
+
+    .news-item-meta {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--space) * 0.5);
+      color: var(--color-text-subtle);
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .news-item-domain {
+      opacity: 0.7;
+    }
+
+    .news-item-stats {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--space) * 0.75);
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--space) * 0.25);
+    }
+
+    .loading {
+      text-align: center;
+      color: var(--color-text-subtle);
+      padding: var(--space);
+      font-style: italic;
+    }
+
+    .error {
+      text-align: center;
+      color: var(--color-text-subtle);
+      padding: var(--space);
+      font-style: italic;
+      opacity: 0.7;
+    }
+
+    @media (min-width: 700px) {
+      .news-container {
+        margin-top: calc(var(--space) * 6);
+      }
+
+      .news-item {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: var(--space);
+      }
+
+      .news-item-content {
+        flex: 1;
+      }
+
+      .news-item-title {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+  <div class="news-container">
+    <div class="news-header">
+      <a href="https://news.ycombinator.com" target="_blank" rel="noopener noreferrer" class="news-title">
+        Hacker News
+      </a>
+      <button class="refresh-btn" type="button">Refresh</button>
+    </div>
+    <ul class="news-list"></ul>
+    <div class="loading">Loading latest stories...</div>
+  </div>
+</template>
+
+<template id="news-item-template">
+  <li>
+    <a class="news-item" target="_blank" rel="noopener noreferrer">
+      <div class="news-item-content">
+        <h3 class="news-item-title"></h3>
+        <div class="news-item-meta">
+          <span class="news-item-domain"></span>
+        </div>
+      </div>
+      <div class="news-item-stats">
+        <div class="stat">
+          <span class="score"></span>
+          <span>points</span>
+        </div>
+        <div class="stat">
+          <span class="time"></span>
+        </div>
+      </div>
+    </a>
+  </li>
+</template>
+
+<script type="module">
+  class NewsFeed extends HTMLElement {
+    #container;
+    #newsList;
+    #loading;
+    #refreshBtn;
+    #stories = [];
+    #CACHE_KEY = 'hacker-news-stories';
+    #CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'open' });
+      this.#initializeTemplate();
+      this.#initializeEventListeners();
+      this.#loadStories();
+    }
+
+    #initializeTemplate() {
+      const template = document.getElementById('news-template');
+      const clone = template.content.cloneNode(true);
+      this.#container = clone.querySelector('.news-container');
+      this.#newsList = clone.querySelector('.news-list');
+      this.#loading = clone.querySelector('.loading');
+      this.#refreshBtn = clone.querySelector('.refresh-btn');
+      this.shadowRoot.append(clone);
+    }
+
+    #initializeEventListeners() {
+      this.#refreshBtn.addEventListener('click', () => {
+        this.#loadStories();
+      });
+    }
+
+    #isCacheValid() {
+      try {
+        const cached = localStorage.getItem(this.#CACHE_KEY);
+        if (!cached) return false;
+
+        const { timestamp } = JSON.parse(cached);
+        return Date.now() - timestamp < this.#CACHE_DURATION;
+      } catch {
+        return false;
+      }
+    }
+
+    #getCachedStories() {
+      try {
+        const cached = localStorage.getItem(this.#CACHE_KEY);
+        return JSON.parse(cached).stories;
+      } catch {
+        return null;
+      }
+    }
+
+    #setCachedStories(stories) {
+      try {
+        const cacheData = {
+          stories,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(this.#CACHE_KEY, JSON.stringify(cacheData));
+      } catch (error) {
+        console.warn('Failed to cache stories:', error);
+      }
+    }
+
+    async #loadStories() {
+      this.#refreshBtn.disabled = true;
+      this.#loading.style.display = 'block';
+      this.#newsList.style.display = 'none';
+
+      try {
+        // Check if we have valid cached stories
+        if (this.#isCacheValid()) {
+          this.#stories = this.#getCachedStories();
+          if (this.#stories && this.#stories.length > 0) {
+            this.#renderStories();
+            this.#loading.style.display = 'none';
+            this.#newsList.style.display = 'flex';
+            this.#refreshBtn.disabled = false;
+            return;
+          }
+        }
+
+        // Fetch fresh stories
+        this.#stories = await HackerNewsAPI.fetchTopStories(8);
+        this.#setCachedStories(this.#stories);
+        this.#renderStories();
+        this.#loading.style.display = 'none';
+        this.#newsList.style.display = 'flex';
+      } catch (error) {
+        console.error('Failed to load stories:', error);
+
+        // Try to show cached stories even if expired
+        const cachedStories = this.#getCachedStories();
+        if (cachedStories && cachedStories.length > 0) {
+          this.#stories = cachedStories;
+          this.#renderStories();
+          this.#loading.textContent = 'Showing cached stories (offline)';
+          this.#loading.className = 'error';
+        } else {
+          this.#loading.textContent = 'Failed to load stories';
+          this.#loading.className = 'error';
+        }
+      } finally {
+        this.#refreshBtn.disabled = false;
+      }
+    }
+
+    #renderStories() {
+      const template = document.getElementById('news-item-template');
+      const fragment = document.createDocumentFragment();
+
+      this.#stories.forEach((story, index) => {
+        const clone = template.content.cloneNode(true);
+        const newsItem = clone.querySelector('.news-item');
+        const title = clone.querySelector('.news-item-title');
+        const domain = clone.querySelector('.news-item-domain');
+        const score = clone.querySelector('.score');
+        const time = clone.querySelector('.time');
+
+        newsItem.href = story.url || `https://news.ycombinator.com/item?id=${story.id}`;
+        title.textContent = story.title;
+
+        if (story.url) {
+          try {
+            const url = new URL(story.url);
+            domain.textContent = url.hostname;
+          } catch {
+            domain.textContent = '';
+          }
+        } else {
+          domain.textContent = 'news.ycombinator.com';
+        }
+
+        score.textContent = HackerNewsAPI.formatScore(story.score || 0);
+        time.textContent = HackerNewsAPI.formatTime(story.time || 0);
+
+        fragment.appendChild(clone);
+      });
+
+      this.#newsList.innerHTML = '';
+      this.#newsList.appendChild(fragment);
+    }
+  }
+
+  customElements.define('news-feed-component', NewsFeed);
+</script>
+
 <style>
   /* Global Styles */
   html {
@@ -751,8 +1167,9 @@
   /* Main Container Styles */
   main {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     box-sizing: border-box;
     min-height: 100dvh;
     width: 100vw;
@@ -763,6 +1180,15 @@
     animation: fadeIn 0.4s var(--transition-easing) forwards;
   }
 
+  .main-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    width: 100%;
+    max-width: 45rem;
+  }
+
   @keyframes fadeIn {
     to {
       opacity: 1;
@@ -771,6 +1197,9 @@
 </style>
 
 <main>
-  <commands-component></commands-component>
-  <search-component></search-component>
+  <div class="main-content">
+    <commands-component></commands-component>
+    <search-component></search-component>
+  </div>
+  <news-feed-component></news-feed-component>
 </main>
