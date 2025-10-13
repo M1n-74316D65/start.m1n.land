@@ -1235,11 +1235,21 @@
         line-height: 1.4;
         letter-spacing: var(--letter-spacing);
         overflow-x: hidden;
+        scrollbar-width: none; /* Firefox */
+    }
+
+    html::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Edge */
     }
 
     body {
         margin: 0;
         overflow-x: hidden;
+        scrollbar-width: none; /* Firefox */
+    }
+
+    body::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Edge */
     }
 
     /* Main Container Styles */
@@ -1256,6 +1266,11 @@
         position: relative;
         opacity: 0;
         animation: fadeIn 0.4s var(--transition-easing) forwards;
+        scrollbar-width: none; /* Firefox */
+    }
+
+    main::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Edge */
     }
 
     .main-content {
