@@ -6,87 +6,81 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **M1n Startpage** is a minimal browser homepage for power users, built as a single-page web application. The project is based on the "Tilde" homepage concept and provides a keyboard-driven interface for quick navigation to frequently used websites.
 
+## Common Development Commands
+
+```bash
+# Local development
+python -m http.server 8000          # Serve on port 8000
+docker-compose up                    # Serve on port 8181 (nginx)
+
+# Code formatting
+npx prettier --write .               # Format all files (see .prettierrc)
+```
+
 ## Architecture
 
-### Core Components
+### Core Structure
 
-The application is built with vanilla JavaScript using Web Components:
+The entire application is contained in `index.html` with vanilla JavaScript Web Components. No build process or external dependencies are required.
 
-- **Commands Component** (`<commands-component>`): Renders the visual grid of available shortcuts with their keys and names
-- **Search Component** (`<search-component>`): Handles the search dialog, input processing, command parsing, and suggestion system
-- **Service Worker**: Provides offline caching capabilities for core assets
-
-### Key Files
-
-- `index.html`: Single-page application containing all HTML, CSS, and JavaScript
-- `service-worker.js`: PWA service worker for caching
-- `manifest.json`: Web app manifest for PWA functionality
-- `docker-compose.yml`: Simple nginx-based deployment setup
+**Key components:**
+- `<commands-component>`: Renders the grid of keyboard shortcuts
+- `<search-component>`: Handles search dialog, input processing, command parsing, and DuckDuckGo autocomplete
+- `<news-feed-component>`: Displays Hacker News top stories with 30-minute caching
+- `service-worker.js`: PWA service worker for offline caching (cache-first strategy)
 
 ### Command System
 
-Commands are defined in the `COMMANDS` Map in `index.html` with the following structure:
-- Single-key shortcuts (e.g., `G` → Sourcehut)
-- Path-based navigation (e.g., `G/github` → GitHub)
-- Hierarchical suggestions (parent commands can suggest sub-commands)
-- Custom search templates for site-specific searches
+Commands are defined in the `COMMANDS` Map in index.html:1124-186. Each command can have:
+- `name`: Display name for the shortcut
+- `url`: Target URL
+- `searchTemplate`: Optional search path (e.g., `/results?search_query={}`)
+- `suggestions`: Optional array of sub-commands
 
-### Search Functionality
-
-The search system supports:
-- Direct URL navigation
-- Command execution with optional search terms
-- Path-based navigation within sites
-- DuckDuckGo integration for autocomplete suggestions
-- Fallback to default search engine (Perplexity.ai)
-
-## Development
-
-### Local Development
-
-Since this is a static site, you can serve it locally using any HTTP server:
-
-```bash
-# Using Python
-python -m http.server 8000
-
-# Using Node.js http-server
-npx http-server
-
-# Using Docker Compose
-docker-compose up
-```
-
-The Docker setup serves the site on port 8181.
+**Command types supported:**
+1. **Direct navigation**: Single key (e.g., `G` → GitHub)
+2. **Site search**: Key + space + query (e.g., `Y kittens` → YouTube search)
+3. **Path navigation**: Key + `/` + path (e.g., `G/issues` → GitHub issues)
+4. **URL detection**: Direct URLs work with or without protocol
 
 ### Configuration
 
-All configuration is contained within `index.html`:
+The `CONFIG` object in index.html:114-122 controls:
+- `commandPathDelimiter`: Character for path navigation (`/`)
+- `commandSearchDelimiter`: Character for search queries (space)
+- `commandCaseSensitive`: Whether commands are case-sensitive
+- `defaultSearchTemplate`: Fallback search engine (currently Google)
+- `openLinksInNewTab`: Link behavior (currently `false`)
+- `suggestionLimit`: Max autocomplete suggestions to show
 
-- **CONFIG object**: Global settings for search behavior, delimiters, and UI preferences
-- **COMMANDS Map**: Site shortcuts and their configurations
-- **CSS custom properties**: Theming and responsive design variables
+### Styling System
 
-### Customization Points
+All styles use CSS custom properties defined in `:root` (index.html:25-44) for theming:
+- Color scheme automatically adapts to `prefers-color-scheme`
+- Design uses CSS Grid, Flexbox, and radial gradients
+- Font: Space Grotesk (loaded from Google Fonts)
+- Responsive breakpoints at 700px and 900px
 
-- **Adding new commands**: Add entries to the `COMMANDS` Map
-- **Changing search engine**: Modify `defaultSearchTemplate` in CONFIG
-- **Styling**: Update CSS custom properties in the `:root` selector
-- **Search behavior**: Adjust CONFIG object properties
+### Service Worker
 
-### Architecture Notes
+`service-worker.js` implements:
+- Cache-first strategy for local resources
+- Manual cache refresh via `Ctrl+Shift+R` keyboard shortcut
+- Passthrough for DuckDuckGo autocomplete and external sites
+- Cache version: `v3` (update `CACHE_NAME` when assets change)
 
-- Web Components provide encapsulation without build tools
-- CSS custom properties enable dark/light mode switching
-- Service Worker ensures offline functionality
-- Responsive design uses CSS Grid and Flexbox
-- No external dependencies or build process required
+## Code Style
+
+- **Formatting**: Prettier with single quotes, ES5 trailing commas (see `.prettierrc`)
+- **JavaScript**: ES6+ with classes, async/await, private fields (`#field`)
+- **Templates**: Use `<template>` tags with Shadow DOM for component encapsulation
+- **Event handling**: Bound methods for event listeners to preserve `this` context
 
 ## Deployment
 
-The project can be deployed as:
-- Static files to any web server
-- Docker container using the included docker-compose.yml
-- PWA-enabled site (manifest.json included)
+Automated deployment to Vercel via `.build.yml` configuration. The build script:
+1. Installs Bun and Vercel CLI
+2. Links to the `start.m1n.land` project
+3. Deploys to production with the `VERCEL_TOKEN` secret
 
-The service worker caches essential assets for offline use.
+For manual deployment, the site is entirely static and can be served from any web server.

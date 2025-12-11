@@ -3,10 +3,10 @@
 <meta name="color-scheme" content="dark light" />
 <meta name="robots" content="noindex" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="theme-color" content="#111" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
 <meta
     name="theme-color"
-    content="#E8E8E8"
+    content="#fafafa"
     media="(prefers-color-scheme: light)"
 />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -22,30 +22,38 @@
 <style>
     :root {
         --border-radius: 1rem;
-        --color-background: #111;
-        --color-text-subtle: #888;
-        --color-text: #eee;
-        --color-focus: #555;
+        --color-background: #0a0a0a;
+        --color-text-subtle: #666;
+        --color-text: #f0f0f0;
+        --color-focus: #1a1a1a;
+        --color-accent: #84cc16;
+        --color-accent-glow: rgba(132, 204, 22, 0.15);
         --font-family:
-            -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        --font-size: clamp(16px, 1.6vw, 18px);
-        --font-weight-bold: 700;
+            'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --font-size: clamp(15px, 1.5vw, 17px);
+        --font-weight-bold: 600;
         --font-weight-normal: 400;
-        --letter-spacing: -0.01em;
+        --letter-spacing: -0.02em;
         --space: 1rem;
-        --transition-speed: 200ms;
-        --transition-easing: cubic-bezier(0.2, 0, 0.2, 1);
+        --transition-speed: 250ms;
+        --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     @media (prefers-color-scheme: light) {
         :root {
-            --color-background: #e8e8e8;
-            --color-text-subtle: #606060;
-            --color-text: #111;
-            --color-focus: #ccc;
+            --color-background: #fafafa;
+            --color-text-subtle: #737373;
+            --color-text: #171717;
+            --color-focus: #e5e5e5;
+            --color-accent: #65a30d;
+            --color-accent-glow: rgba(101, 163, 13, 0.12);
         }
     }
 </style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
 <script>
     // Constants
@@ -240,64 +248,180 @@
     registerServiceWorker();
 </script>
 
+<template id="clock-template">
+    <style>
+        .clock-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: calc(var(--space) * 0.5);
+            margin-bottom: calc(var(--space) * 3);
+        }
+
+        .greeting {
+            color: var(--color-text-subtle);
+            font-size: 0.9rem;
+            font-weight: var(--font-weight-normal);
+            letter-spacing: var(--letter-spacing);
+        }
+
+        .time {
+            color: var(--color-text);
+            font-size: clamp(3.5rem, 10vw, 5rem);
+            font-weight: var(--font-weight-bold);
+            letter-spacing: -0.04em;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .date {
+            color: var(--color-text-subtle);
+            font-size: 0.9rem;
+            font-weight: var(--font-weight-normal);
+            letter-spacing: var(--letter-spacing);
+        }
+
+        .keyboard-hint {
+            color: var(--color-text-subtle);
+            font-size: 0.8rem;
+            margin-top: calc(var(--space) * 1.5);
+            opacity: 0.6;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .keyboard-hint kbd {
+            background: var(--color-focus);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: inherit;
+            font-size: 0.75rem;
+        }
+    </style>
+    <div class="clock-container">
+        <span class="greeting"></span>
+        <time class="time"></time>
+        <span class="date"></span>
+        <span class="keyboard-hint">Press any key to search</span>
+    </div>
+</template>
+
+<script type="module">
+    class Clock extends HTMLElement {
+        #greeting;
+        #time;
+        #date;
+        #interval;
+
+        constructor() {
+            super();
+            this.attachShadow({ mode: 'open' });
+            this.#initializeTemplate();
+            this.#updateClock();
+            this.#interval = setInterval(() => this.#updateClock(), 1000);
+        }
+
+        disconnectedCallback() {
+            if (this.#interval) clearInterval(this.#interval);
+        }
+
+        #initializeTemplate() {
+            const template = document.getElementById('clock-template');
+            const clone = template.content.cloneNode(true);
+            this.#greeting = clone.querySelector('.greeting');
+            this.#time = clone.querySelector('.time');
+            this.#date = clone.querySelector('.date');
+            this.shadowRoot.append(clone);
+        }
+
+        #updateClock() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            
+            this.#time.textContent = `${hours}:${minutes}`;
+            this.#greeting.textContent = this.#getGreeting(hours);
+            this.#date.textContent = now.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        #getGreeting(hours) {
+            if (hours >= 5 && hours < 12) return 'Good morning';
+            if (hours >= 12 && hours < 17) return 'Good afternoon';
+            if (hours >= 17 && hours < 21) return 'Good evening';
+            return 'Good night';
+        }
+    }
+
+    customElements.define('clock-component', Clock);
+</script>
+
 <template id="commands-template">
     <style>
         .commands {
-            column-gap: 0;
-            columns: 2;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2px;
             list-style: none;
             margin: 0 auto;
-            max-width: 20rem;
-            overflow: hidden;
+            max-width: 24rem;
             padding: 0;
             width: 100%;
+            background: var(--color-focus);
             border-radius: var(--border-radius);
+            overflow: hidden;
         }
 
         .command {
             display: flex;
-            gap: var(--space);
+            gap: calc(var(--space) * 0.75);
             outline: 0;
-            padding: var(--space);
+            padding: calc(var(--space) * 0.875) var(--space);
             position: relative;
             text-decoration: none;
-            border-radius: calc(var(--border-radius) / 2);
             min-height: 44px;
             align-items: center;
+            background: var(--color-background);
+            transition: all var(--transition-speed) var(--transition-easing);
         }
 
-        .command::after {
-            background: var(--color-text-subtle);
-            content: ' ';
-            inset: 1px;
-            opacity: 0.05;
-            position: absolute;
-            transition: opacity var(--transition-speed) var(--transition-easing);
-        }
-
-        .command:focus::after,
-        .command:hover::after {
-            opacity: 0.1;
+        .command:hover {
+            background: var(--color-focus);
         }
 
         .command:focus {
-            outline: 2px solid var(--color-focus);
-            outline-offset: 2px;
+            outline: 2px solid var(--color-accent);
+            outline-offset: -2px;
+            z-index: 1;
         }
 
         .key {
-            color: var(--color-text);
-            display: inline-block;
-            text-align: center;
-            width: 3ch;
+            color: var(--color-accent);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            height: 1.75rem;
             font-weight: var(--font-weight-bold);
-            letter-spacing: var(--letter-spacing);
+            font-size: 0.8rem;
+            letter-spacing: 0;
+            background: var(--color-accent-glow);
+            border-radius: 0.375rem;
+            flex-shrink: 0;
         }
 
         .name {
             color: var(--color-text-subtle);
             transition: color var(--transition-speed) var(--transition-easing);
             letter-spacing: var(--letter-spacing);
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .command:focus .name,
@@ -307,15 +431,15 @@
 
         @media (min-width: 600px) {
             .commands {
-                columns: 3;
-                max-width: 32rem;
+                grid-template-columns: repeat(3, 1fr);
+                max-width: 36rem;
             }
         }
 
         @media (min-width: 900px) {
             .commands {
-                columns: 4;
-                max-width: 45rem;
+                grid-template-columns: repeat(4, 1fr);
+                max-width: 48rem;
             }
         }
     </style>
@@ -417,17 +541,17 @@
 
         .input {
             color: var(--color-text);
-            font-size: 3rem;
+            font-size: clamp(2rem, 6vw, 3rem);
             font-weight: var(--font-weight-bold);
             padding: 0;
             text-align: center;
             width: 100%;
-            letter-spacing: var(--letter-spacing);
+            letter-spacing: -0.02em;
         }
 
         .input::placeholder {
             color: var(--color-text-subtle);
-            opacity: 0.6;
+            opacity: 0.5;
         }
 
         .suggestions {
@@ -445,46 +569,30 @@
         .suggestion {
             color: var(--color-text);
             cursor: pointer;
-            font-size: 1rem;
-            padding: var(--space);
+            font-size: 0.9rem;
+            padding: calc(var(--space) * 0.75) var(--space);
             position: relative;
-            transition: color var(--transition-speed) var(--transition-easing);
+            transition: all var(--transition-speed) var(--transition-easing);
             white-space: nowrap;
             z-index: 1;
-            border-radius: calc(var(--border-radius) / 3);
+            border-radius: 0.5rem;
             outline: 0;
+            background: var(--color-focus);
         }
 
         .suggestion:focus,
         .suggestion:hover {
             color: var(--color-background);
+            background: var(--color-text);
         }
 
         .suggestion:focus {
-            outline: 2px solid var(--color-focus);
+            outline: 2px solid var(--color-accent);
             outline-offset: 2px;
         }
 
-        .suggestion::before {
-            background-color: var(--color-text);
-            border-radius: inherit;
-            content: ' ';
-            inset: 0;
-            opacity: 0;
-            position: absolute;
-            transform: translateY(0.25em);
-            transition: all var(--transition-speed) var(--transition-easing);
-            z-index: -1;
-        }
-
-        .suggestion:focus::before,
-        .suggestion:hover::before {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
         .match {
-            color: var(--color-text-subtle);
+            color: var(--color-accent);
             transition: color var(--transition-speed) var(--transition-easing);
             font-weight: var(--font-weight-bold);
         }
@@ -855,31 +963,28 @@
     <style>
         .news-container {
             margin-top: 0;
-            max-width: 45rem;
+            max-width: 48rem;
             width: 100%;
-            opacity: 1;
-        }
-
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-            }
         }
 
         .news-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: var(--space);
-            color: var(--color-text-subtle);
-            font-size: 0.9rem;
-            font-weight: var(--font-weight-bold);
-            letter-spacing: var(--letter-spacing);
+            margin-bottom: calc(var(--space) * 0.75);
+            padding: 0 calc(var(--space) * 0.5);
         }
 
         .news-title {
-            color: var(--color-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--color-text-subtle);
             text-decoration: none;
+            font-size: 0.75rem;
+            font-weight: var(--font-weight-bold);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
             transition: color var(--transition-speed) var(--transition-easing);
         }
 
@@ -887,15 +992,43 @@
             color: var(--color-text);
         }
 
+        .news-title svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            opacity: 0.7;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cache-time {
+            color: var(--color-text-subtle);
+            font-size: 0.7rem;
+            opacity: 0.6;
+        }
+
         .refresh-btn {
             background: transparent;
-            border: 1px solid var(--color-focus);
+            border: none;
             color: var(--color-text-subtle);
-            padding: 0.25rem 0.75rem;
-            border-radius: calc(var(--border-radius) / 3);
-            font-size: 0.8rem;
+            padding: 0.375rem;
+            border-radius: 0.375rem;
             cursor: pointer;
             transition: all var(--transition-speed) var(--transition-easing);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .refresh-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            transition: transform 0.5s var(--transition-easing);
         }
 
         .refresh-btn:hover {
@@ -903,9 +1036,22 @@
             color: var(--color-text);
         }
 
+        .refresh-btn:hover svg {
+            transform: rotate(180deg);
+        }
+
         .refresh-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .refresh-btn:disabled svg {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         .news-list {
@@ -914,120 +1060,172 @@
             padding: 0;
             display: flex;
             flex-direction: column;
-            gap: calc(var(--space) * 0.75);
+            gap: 1px;
+            background: var(--color-focus);
+            border-radius: calc(var(--border-radius) * 0.75);
+            overflow: hidden;
         }
 
         .news-item {
-            display: flex;
-            flex-direction: column;
-            gap: calc(var(--space) * 0.25);
-            padding: var(--space);
-            border-radius: calc(var(--border-radius) / 2);
+            display: grid;
+            grid-template-columns: 3rem 1fr auto;
+            align-items: center;
+            gap: calc(var(--space) * 0.75);
+            padding: calc(var(--space) * 0.75) var(--space);
+            background: var(--color-background);
             transition: all var(--transition-speed) var(--transition-easing);
             text-decoration: none;
             color: inherit;
             outline: 0;
-            position: relative;
         }
 
-        .news-item::after {
-            background: var(--color-text-subtle);
-            content: ' ';
-            inset: 1px;
-            opacity: 0.03;
-            position: absolute;
-            transition: opacity var(--transition-speed) var(--transition-easing);
-            border-radius: inherit;
-        }
-
-        .news-item:focus::after,
-        .news-item:hover::after {
-            opacity: 0.08;
+        .news-item:hover {
+            background: var(--color-focus);
         }
 
         .news-item:focus {
-            outline: 2px solid var(--color-focus);
-            outline-offset: 2px;
+            outline: 2px solid var(--color-accent);
+            outline-offset: -2px;
+            z-index: 1;
         }
 
-        .news-item-header {
+        .news-item-rank {
+            color: var(--color-text-subtle);
+            font-size: 0.8rem;
+            font-weight: var(--font-weight-bold);
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+            opacity: 0.5;
+        }
+
+        .news-item-content {
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: var(--space);
+            flex-direction: column;
+            gap: 0.25rem;
+            min-width: 0;
         }
 
         .news-item-title {
             color: var(--color-text);
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: var(--font-weight-normal);
-            line-height: 1.4;
-            flex: 1;
+            line-height: 1.35;
             margin: 0;
-            transition: color var(--transition-speed) var(--transition-easing);
-        }
-
-        .news-item:hover .news-item-title {
-            color: var(--color-text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
 
         .news-item-meta {
             display: flex;
             align-items: center;
-            gap: calc(var(--space) * 0.5);
+            gap: 0.5rem;
             color: var(--color-text-subtle);
-            font-size: 0.8rem;
-            white-space: nowrap;
+            font-size: 0.7rem;
         }
 
         .news-item-domain {
             opacity: 0.7;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .meta-separator {
+            opacity: 0.3;
         }
 
         .news-item-stats {
             display: flex;
-            align-items: center;
-            gap: calc(var(--space) * 0.75);
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.125rem;
+            flex-shrink: 0;
         }
 
-        .stat {
+        .score-badge {
             display: flex;
             align-items: center;
-            gap: calc(var(--space) * 0.25);
+            gap: 0.25rem;
+            color: var(--color-accent);
+            font-size: 0.75rem;
+            font-weight: var(--font-weight-bold);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .score-badge svg {
+            width: 10px;
+            height: 10px;
+            fill: currentColor;
+        }
+
+        .time-badge {
+            color: var(--color-text-subtle);
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+
+        .comments-link {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--color-text-subtle);
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+
+        .comments-link svg {
+            width: 10px;
+            height: 10px;
+            fill: currentColor;
         }
 
         .loading {
             text-align: center;
             color: var(--color-text-subtle);
-            padding: var(--space);
-            font-style: italic;
+            padding: calc(var(--space) * 2);
+            font-size: 0.85rem;
+            background: var(--color-background);
+            border-radius: calc(var(--border-radius) * 0.75);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--color-focus);
+            border-top-color: var(--color-accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+            vertical-align: middle;
         }
 
         .error {
             text-align: center;
             color: var(--color-text-subtle);
             padding: var(--space);
-            font-style: italic;
+            font-size: 0.85rem;
             opacity: 0.7;
         }
 
         @media (min-width: 700px) {
-            .news-container {
-                margin-top: 0;
-            }
-
             .news-item {
-                flex-direction: row;
-                align-items: flex-start;
-                gap: var(--space);
-            }
-
-            .news-item-content {
-                flex: 1;
+                grid-template-columns: 2.5rem 1fr auto;
+                padding: calc(var(--space) * 0.875) calc(var(--space) * 1.25);
             }
 
             .news-item-title {
-                font-size: 1.1rem;
+                font-size: 0.925rem;
+                -webkit-line-clamp: 1;
+            }
+
+            .news-item-stats {
+                flex-direction: row;
+                gap: var(--space);
             }
         }
     </style>
@@ -1039,32 +1237,50 @@
                 rel="noopener noreferrer"
                 class="news-title"
             >
+                <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0 0v16h16V0H0zm8.8 9.6V14H7.2V9.6L3.6 2h1.8l3.6 6 3.6-6h1.8L8.8 9.6z"/>
+                </svg>
                 Hacker News
             </a>
-            <button class="refresh-btn" type="button">Refresh</button>
+            <div class="header-actions">
+                <span class="cache-time"></span>
+                <button class="refresh-btn" type="button" title="Refresh stories">
+                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.65 2.35A8 8 0 1 0 16 8h-2a6 6 0 1 1-1.76-4.24L10 6h6V0l-2.35 2.35z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
         <ul class="news-list"></ul>
-        <div class="loading">Loading latest stories...</div>
+        <div class="loading"><span class="loading-spinner"></span>Loading stories...</div>
     </div>
 </template>
 
 <template id="news-item-template">
     <li>
         <a class="news-item" target="_blank" rel="noopener noreferrer">
+            <span class="news-item-rank"></span>
             <div class="news-item-content">
                 <h3 class="news-item-title"></h3>
                 <div class="news-item-meta">
                     <span class="news-item-domain"></span>
+                    <span class="meta-separator">·</span>
+                    <span class="comments-link">
+                        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M14 1H2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3l3 3 3-3h3a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2z"/>
+                        </svg>
+                        <span class="comments-count"></span>
+                    </span>
                 </div>
             </div>
             <div class="news-item-stats">
-                <div class="stat">
+                <div class="score-badge">
+                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 0l2.5 5 5.5.8-4 3.9.9 5.5L8 12.5l-4.9 2.7.9-5.5-4-3.9L5.5 5z"/>
+                    </svg>
                     <span class="score"></span>
-                    <span>points</span>
                 </div>
-                <div class="stat">
-                    <span class="time"></span>
-                </div>
+                <span class="time-badge"></span>
             </div>
         </a>
     </li>
@@ -1076,6 +1292,7 @@
         #newsList;
         #loading;
         #refreshBtn;
+        #cacheTime;
         #stories = [];
         #CACHE_KEY = 'hacker-news-stories';
         #CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
@@ -1095,12 +1312,13 @@
             this.#newsList = clone.querySelector('.news-list');
             this.#loading = clone.querySelector('.loading');
             this.#refreshBtn = clone.querySelector('.refresh-btn');
+            this.#cacheTime = clone.querySelector('.cache-time');
             this.shadowRoot.append(clone);
         }
 
         #initializeEventListeners() {
             this.#refreshBtn.addEventListener('click', () => {
-                this.#loadStories();
+                this.#loadStories(true);
             });
         }
 
@@ -1119,9 +1337,28 @@
         #getCachedStories() {
             try {
                 const cached = localStorage.getItem(this.#CACHE_KEY);
-                return JSON.parse(cached).stories;
+                return JSON.parse(cached);
             } catch {
                 return null;
+            }
+        }
+
+        #updateCacheTimeDisplay() {
+            try {
+                const cached = localStorage.getItem(this.#CACHE_KEY);
+                if (cached) {
+                    const { timestamp } = JSON.parse(cached);
+                    const minutes = Math.floor((Date.now() - timestamp) / 60000);
+                    if (minutes < 1) {
+                        this.#cacheTime.textContent = 'just now';
+                    } else if (minutes === 1) {
+                        this.#cacheTime.textContent = '1m ago';
+                    } else {
+                        this.#cacheTime.textContent = `${minutes}m ago`;
+                    }
+                }
+            } catch {
+                this.#cacheTime.textContent = '';
             }
         }
 
@@ -1140,17 +1377,19 @@
             }
         }
 
-        async #loadStories() {
+        async #loadStories(forceRefresh = false) {
             this.#refreshBtn.disabled = true;
             this.#loading.style.display = 'block';
             this.#newsList.style.display = 'none';
 
             try {
                 // Check if we have valid cached stories
-                if (this.#isCacheValid()) {
-                    this.#stories = this.#getCachedStories();
-                    if (this.#stories && this.#stories.length > 0) {
+                if (!forceRefresh && this.#isCacheValid()) {
+                    const cached = this.#getCachedStories();
+                    if (cached && cached.stories && cached.stories.length > 0) {
+                        this.#stories = cached.stories;
                         this.#renderStories();
+                        this.#updateCacheTimeDisplay();
                         this.#loading.style.display = 'none';
                         this.#newsList.style.display = 'flex';
                         this.#refreshBtn.disabled = false;
@@ -1159,18 +1398,19 @@
                 }
 
                 // Fetch fresh stories
-                this.#stories = await HackerNewsAPI.fetchTopStories(8);
+                this.#stories = await HackerNewsAPI.fetchTopStories(10);
                 this.#setCachedStories(this.#stories);
                 this.#renderStories();
+                this.#updateCacheTimeDisplay();
                 this.#loading.style.display = 'none';
                 this.#newsList.style.display = 'flex';
             } catch (error) {
                 console.error('Failed to load stories:', error);
 
                 // Try to show cached stories even if expired
-                const cachedStories = this.#getCachedStories();
-                if (cachedStories && cachedStories.length > 0) {
-                    this.#stories = cachedStories;
+                const cached = this.#getCachedStories();
+                if (cached && cached.stories && cached.stories.length > 0) {
+                    this.#stories = cached.stories;
                     this.#renderStories();
                     this.#loading.textContent =
                         'Showing cached stories (offline)';
@@ -1191,20 +1431,23 @@
             this.#stories.forEach((story, index) => {
                 const clone = template.content.cloneNode(true);
                 const newsItem = clone.querySelector('.news-item');
+                const rank = clone.querySelector('.news-item-rank');
                 const title = clone.querySelector('.news-item-title');
                 const domain = clone.querySelector('.news-item-domain');
                 const score = clone.querySelector('.score');
-                const time = clone.querySelector('.time');
+                const time = clone.querySelector('.time-badge');
+                const commentsCount = clone.querySelector('.comments-count');
 
                 newsItem.href =
                     story.url ||
                     `https://news.ycombinator.com/item?id=${story.id}`;
+                rank.textContent = `${index + 1}`;
                 title.textContent = story.title;
 
                 if (story.url) {
                     try {
                         const url = new URL(story.url);
-                        domain.textContent = url.hostname;
+                        domain.textContent = url.hostname.replace(/^www\./, '');
                     } catch {
                         domain.textContent = '';
                     }
@@ -1214,6 +1457,7 @@
 
                 score.textContent = HackerNewsAPI.formatScore(story.score || 0);
                 time.textContent = HackerNewsAPI.formatTime(story.time || 0);
+                commentsCount.textContent = story.descendants || 0;
 
                 fragment.appendChild(clone);
             });
@@ -1261,11 +1505,11 @@
         box-sizing: border-box;
         min-height: 100dvh;
         width: 100vw;
-        padding: calc(var(--space) * 4) var(--space);
+        padding: calc(var(--space) * 6) var(--space) calc(var(--space) * 4);
         overflow: hidden;
         position: relative;
         opacity: 0;
-        animation: fadeIn 0.4s var(--transition-easing) forwards;
+        animation: fadeIn 0.5s var(--transition-easing) forwards;
         scrollbar-width: none; /* Firefox */
     }
 
@@ -1275,11 +1519,12 @@
 
     .main-content {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         flex: 1;
         width: 100%;
-        max-width: 45rem;
+        max-width: 48rem;
     }
 
     /* News Section Styles */
@@ -1287,7 +1532,8 @@
         display: flex;
         justify-content: center;
         width: 100%;
-        margin-top: calc(var(--space) * 6);
+        padding: 0 var(--space);
+        margin-top: calc(var(--space) * 4);
     }
 
     @keyframes fadeIn {
@@ -1299,6 +1545,7 @@
 
 <main>
     <div class="main-content">
+        <clock-component></clock-component>
         <commands-component></commands-component>
         <search-component></search-component>
     </div>
