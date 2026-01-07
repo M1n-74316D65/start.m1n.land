@@ -313,6 +313,9 @@
         #time;
         #date;
         #interval;
+        #lastHours = -1;
+        #lastMinutes = -1;
+        #lastDate = '';
 
         constructor() {
             super();
@@ -339,14 +342,25 @@
             const now = new Date();
             const hours = now.getHours();
             const minutes = now.getMinutes().toString().padStart(2, '0');
-            
-            this.#time.textContent = `${hours}:${minutes}`;
-            this.#greeting.textContent = this.#getGreeting(hours);
-            this.#date.textContent = now.toLocaleDateString('en-US', {
+            const timeStr = `${hours}:${minutes}`;
+            const greeting = this.#getGreeting(hours);
+            const dateStr = now.toLocaleDateString('en-US', {
                 weekday: 'long',
                 month: 'long',
                 day: 'numeric'
             });
+
+            if (this.#lastHours !== hours || this.#lastMinutes !== minutes) {
+                this.#time.textContent = timeStr;
+                this.#greeting.textContent = greeting;
+                this.#lastHours = hours;
+                this.#lastMinutes = minutes;
+            }
+
+            if (this.#lastDate !== dateStr) {
+                this.#date.textContent = dateStr;
+                this.#lastDate = dateStr;
+            }
         }
 
         #getGreeting(hours) {
@@ -642,12 +656,22 @@
         #form;
         #input;
         #suggestions;
+        #suggestionTemplate;
+        #matchTemplate;
+        #debounceTimeout;
+        #lastRequestId = 0;
 
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
             this.#initializeTemplate();
             this.#initializeEventListeners();
+        }
+
+        disconnectedCallback() {
+            if (this.#debounceTimeout) {
+                clearTimeout(this.#debounceTimeout);
+            }
         }
 
         #initializeTemplate() {
@@ -657,6 +681,8 @@
             this.#form = clone.querySelector('.form');
             this.#input = clone.querySelector('.input');
             this.#suggestions = clone.querySelector('.suggestions');
+            this.#suggestionTemplate = document.getElementById('suggestion-template');
+            this.#matchTemplate = document.getElementById('match-template');
             this.shadowRoot.append(clone);
         }
 
@@ -666,12 +692,23 @@
                 this.#onSubmit.bind(this),
                 false
             );
-            this.#input.addEventListener('input', this.#onInput.bind(this));
+            this.#input.addEventListener(
+                'input',
+                Search.#debounce(this.#onInput.bind(this), 300)
+            );
             this.#suggestions.addEventListener(
                 'click',
                 this.#onSuggestionClick.bind(this)
             );
             document.addEventListener('keydown', this.#onKeydown.bind(this));
+        }
+
+        static #debounce(fn, delay) {
+            let timeoutId;
+            return function (...args) {
+                if (timeoutId) clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => fn.apply(this, args), delay);
+            };
         }
 
         static #escapeRegexCharacters(s) {
@@ -811,6 +848,7 @@
         }
 
         async #onInput() {
+            const requestId = ++this.#lastRequestId;
             const parsedQuery = Search.#parseQuery(this.#input.value);
 
             if (!parsedQuery.query) {
@@ -830,6 +868,9 @@
                 const ddgSuggestions = await Search.#fetchDuckDuckGoSuggestions(
                     parsedQuery.search
                 );
+                
+                if (requestId !== this.#lastRequestId) return;
+                
                 suggestions = suggestions.concat(
                     parsedQuery.key
                         ? ddgSuggestions.map(
@@ -909,14 +950,12 @@
 
         #renderSuggestions(suggestions, query) {
             this.#suggestions.innerHTML = '';
-            const template = document.getElementById('suggestion-template');
-            const matchTemplate = document.getElementById('match-template');
 
             const fragment = document.createDocumentFragment();
             suggestions
                 .slice(0, CONFIG.suggestionLimit)
                 .forEach((suggestion, index) => {
-                    const clone = template.content.cloneNode(true);
+                    const clone = this.#suggestionTemplate.content.cloneNode(true);
                     const ref = clone.querySelector('.suggestion');
                     ref.dataset.index = index;
                     ref.dataset.suggestion = suggestion;
@@ -936,7 +975,7 @@
                         );
 
                         const matchClone =
-                            matchTemplate.content.cloneNode(true);
+                            this.#matchTemplate.content.cloneNode(true);
                         const matchRef = matchClone.querySelector('.match');
                         matchRef.textContent = match;
 
@@ -1288,6 +1327,8 @@
 
 <script type="module">
     class NewsFeed extends HTMLElement {
+        static #newsItemTemplate = null;
+
         #container;
         #newsList;
         #loading;
@@ -1313,6 +1354,11 @@
             this.#loading = clone.querySelector('.loading');
             this.#refreshBtn = clone.querySelector('.refresh-btn');
             this.#cacheTime = clone.querySelector('.cache-time');
+            
+            if (!NewsFeed.#newsItemTemplate) {
+                NewsFeed.#newsItemTemplate = document.getElementById('news-item-template');
+            }
+            
             this.shadowRoot.append(clone);
         }
 
@@ -1425,11 +1471,10 @@
         }
 
         #renderStories() {
-            const template = document.getElementById('news-item-template');
             const fragment = document.createDocumentFragment();
 
             this.#stories.forEach((story, index) => {
-                const clone = template.content.cloneNode(true);
+                const clone = NewsFeed.#newsItemTemplate.content.cloneNode(true);
                 const newsItem = clone.querySelector('.news-item');
                 const rank = clone.querySelector('.news-item-rank');
                 const title = clone.querySelector('.news-item-title');
