@@ -104,9 +104,10 @@
     }
   }
 
-  // Global keyboard event listener for Ctrl+Shift+R
+  // Global keyboard event listener for Force Refresh
   document.addEventListener('keydown', (event) => {
-    if (event.ctrlKey && event.shiftKey && event.key === 'R') {
+    // Check for Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (macOS)
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'r') {
       event.preventDefault();
       updatePWACache();
     }
@@ -115,12 +116,9 @@
     if ((event.altKey || event.metaKey) && /^[1-9]$/.test(event.key)) {
       event.preventDefault();
       const tabIndex = parseInt(event.key) - 1;
-      if (tabIndex < WORKSPACES.length) {
-        const workspaceId = WORKSPACES[tabIndex].id;
-        const tabsComponent = document.querySelector('tabs-component');
-        if (tabsComponent && tabsComponent.switchToWorkspace) {
-          tabsComponent.switchToWorkspace(workspaceId);
-        }
+      if (tabIndex < workspaceManager.workspaces.length) {
+        const workspaceId = workspaceManager.workspaces[tabIndex].id;
+        workspaceManager.switchTo(workspaceId);
       }
     }
   });
