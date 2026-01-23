@@ -110,6 +110,19 @@
       event.preventDefault();
       updatePWACache();
     }
+
+    // Tab switching with Alt/Option + number keys (Windows/Linux) or Command + number keys (macOS)
+    if ((event.altKey || event.metaKey) && /^[1-9]$/.test(event.key)) {
+      event.preventDefault();
+      const tabIndex = parseInt(event.key) - 1;
+      if (tabIndex < WORKSPACES.length) {
+        const workspaceId = WORKSPACES[tabIndex].id;
+        const tabsComponent = document.querySelector('tabs-component');
+        if (tabsComponent && tabsComponent.switchToWorkspace) {
+          tabsComponent.switchToWorkspace(workspaceId);
+        }
+      }
+    }
   });
 
   // Configuration
@@ -120,7 +133,28 @@
     defaultSearchTemplate: 'https://www.google.com/search?q={}',
     openLinksInNewTab: false,
     suggestionLimit: 4,
+    defaultWorkspace: 'personal',
+    workspaceStorageKey: 'm1n-active-workspace',
   };
+
+  // Workspaces Configuration
+  const WORKSPACES = [
+    {
+      id: 'personal',
+      name: 'Personal',
+      commands: ['M', 'G', 'N', 'Y', 'A', 'T', 'R', 'P', 'H', '1'],
+    },
+    {
+      id: 'work',
+      name: 'Work',
+      commands: ['M', 'G', 'V', 'O', 'C', 'F', 'S', 'B'],
+    },
+    {
+      id: 'dev',
+      name: 'Dev',
+      commands: ['G', 'V', 'O', 'C', 'S', 'B', 'H', 'P'],
+    },
+  ];
 
   // Commands
   const COMMANDS = new Map([
@@ -288,6 +322,8 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     .keyboard-hint kbd {
@@ -298,11 +334,33 @@
       font-family: inherit;
       font-size: 0.7rem;
     }
+
+    .hint-group {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .hint-separator {
+      margin: 0 0.5rem;
+    }
   </style>
   <div class="clock-container">
     <span class="greeting"></span>
     <time class="time"></time>
     <span class="date"></span>
+    <div class="keyboard-hint">
+      <span class="hint-group">
+        <kbd>⌘</kbd>
+        <kbd>1-3</kbd>
+        <span>switch workspace</span>
+      </span>
+      <span class="hint-separator">·</span>
+      <span class="hint-group">
+        <kbd>type</kbd>
+        <span>search</span>
+      </span>
+    </div>
   </div>
 </template>
 
@@ -371,6 +429,220 @@
   }
 
   customElements.define('clock-component', Clock);
+</script>
+
+<template id="tabs-template">
+  <style>
+    .tabs-container {
+      display: flex;
+      gap: 0;
+      margin-bottom: calc(var(--space) * 1.5);
+      background: transparent;
+      border: 1px solid var(--color-focus);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+    }
+
+    .tab {
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--color-focus);
+      color: var(--color-text-subtle);
+      cursor: pointer;
+      font-family: var(--font-family);
+      font-size: 0.7rem;
+      font-weight: var(--font-weight-normal);
+      letter-spacing: 0.08em;
+      padding: calc(var(--space) * 0.5) calc(var(--space) * 0.85);
+      position: relative;
+      text-transform: uppercase;
+      transition: all var(--transition-speed) var(--transition-easing);
+      outline: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .tab:last-child {
+      border-right: none;
+    }
+
+    .tab:hover {
+      color: var(--color-text);
+      background: var(--color-focus);
+    }
+
+    .tab:focus {
+      outline: 1px solid var(--color-accent);
+      outline-offset: -2px;
+      z-index: 1;
+    }
+
+    .tab.active {
+      color: var(--color-accent);
+      background: var(--color-accent-glow);
+    }
+
+    .tab-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.2rem;
+      height: 1.2rem;
+      font-size: 0.6rem;
+      font-weight: var(--font-weight-bold);
+      background: transparent;
+      border: 1px solid var(--color-text-subtle);
+      border-radius: 0;
+      opacity: 0.5;
+      transition: all var(--transition-speed) var(--transition-easing);
+    }
+
+    .tab:hover .tab-key {
+      opacity: 0.8;
+      border-color: var(--color-text-subtle);
+    }
+
+    .tab.active .tab-key {
+      opacity: 1;
+      border-color: var(--color-accent);
+    }
+
+    @media (min-width: 600px) {
+      .tab {
+        font-size: 0.75rem;
+        padding: calc(var(--space) * 0.6) calc(var(--space) * 1);
+      }
+    }
+  </style>
+  <nav class="tabs-container"></nav>
+</template>
+
+<template id="tab-template">
+  <button class="tab" type="button">
+    <span class="tab-key"></span>
+    <span class="tab-name"></span>
+  </button>
+</template>
+
+<script type="module">
+  class Tabs extends HTMLElement {
+    #tabsContainer;
+    #tabTemplate;
+    #activeWorkspaceId;
+
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'open' });
+      this.#initializeTemplate();
+      this.#loadActiveWorkspace();
+      this.#renderTabs();
+      this.#initializeEventListeners();
+      this.#notifyWorkspaceChange();
+    }
+
+    #initializeTemplate() {
+      const template = document.getElementById('tabs-template');
+      const clone = template.content.cloneNode(true);
+      this.#tabsContainer = clone.querySelector('.tabs-container');
+      this.#tabTemplate = document.getElementById('tab-template');
+      this.shadowRoot.append(clone);
+    }
+
+    #loadActiveWorkspace() {
+      try {
+        const stored = localStorage.getItem(CONFIG.workspaceStorageKey);
+        this.#activeWorkspaceId = stored || CONFIG.defaultWorkspace;
+      } catch {
+        this.#activeWorkspaceId = CONFIG.defaultWorkspace;
+      }
+    }
+
+    #saveActiveWorkspace(workspaceId) {
+      try {
+        localStorage.setItem(CONFIG.workspaceStorageKey, workspaceId);
+      } catch (error) {
+        console.warn('Failed to save workspace:', error);
+      }
+    }
+
+    #renderTabs() {
+      const fragment = document.createDocumentFragment();
+      WORKSPACES.forEach((workspace, index) => {
+        const clone = this.#tabTemplate.content.cloneNode(true);
+        const tab = clone.querySelector('.tab');
+        const tabKey = clone.querySelector('.tab-key');
+        const tabName = clone.querySelector('.tab-name');
+
+        tab.dataset.workspaceId = workspace.id;
+        tabKey.textContent = index + 1;
+        tabName.textContent = workspace.name;
+
+        if (workspace.id === this.#activeWorkspaceId) {
+          tab.classList.add('active');
+        }
+
+        fragment.appendChild(clone);
+      });
+
+      this.#tabsContainer.appendChild(fragment);
+    }
+
+    #initializeEventListeners() {
+      this.#tabsContainer.addEventListener('click', (e) => {
+        const tab = e.target.closest('.tab');
+        if (!tab) return;
+
+        const workspaceId = tab.dataset.workspaceId;
+        if (workspaceId === this.#activeWorkspaceId) return;
+
+        this.#switchWorkspace(workspaceId);
+      });
+
+      this.#tabsContainer.addEventListener('keydown', (e) => {
+        const tab = e.target.closest('.tab');
+        if (!tab) return;
+
+        const index = Array.from(this.#tabsContainer.children).indexOf(tab);
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const prevTab = this.#tabsContainer.children[index - 1] || this.#tabsContainer.children[this.#tabsContainer.children.length - 1];
+          if (prevTab) prevTab.focus();
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          const nextTab = this.#tabsContainer.children[index + 1] || this.#tabsContainer.children[0];
+          if (nextTab) nextTab.focus();
+        }
+      });
+    }
+
+    #switchWorkspace(workspaceId) {
+      this.#activeWorkspaceId = workspaceId;
+      this.#saveActiveWorkspace(workspaceId);
+
+      this.#tabsContainer.querySelectorAll('.tab').forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.workspaceId === workspaceId);
+      });
+
+      this.#notifyWorkspaceChange();
+    }
+
+    #notifyWorkspaceChange() {
+      const workspace = WORKSPACES.find((w) => w.id === this.#activeWorkspaceId);
+      window.dispatchEvent(
+        new CustomEvent('workspacechange', {
+          detail: { workspace, workspaceId: this.#activeWorkspaceId },
+          bubbles: true,
+        })
+      );
+    }
+
+    switchToWorkspace(workspaceId) {
+      this.#switchWorkspace(workspaceId);
+    }
+  }
+
+  customElements.define('tabs-component', Tabs);
 </script>
 
 <template id="commands-template">
@@ -529,10 +801,48 @@
 
 <script type="module">
   class Commands extends HTMLElement {
+    #activeWorkspaceId;
+
     constructor() {
       super();
       this.attachShadow({ mode: 'open' });
+      this.#loadActiveWorkspace();
       this.render();
+      this.#initializeEventListeners();
+    }
+
+    #loadActiveWorkspace() {
+      try {
+        const stored = localStorage.getItem(CONFIG.workspaceStorageKey);
+        this.#activeWorkspaceId = stored || CONFIG.defaultWorkspace;
+      } catch {
+        this.#activeWorkspaceId = CONFIG.defaultWorkspace;
+      }
+    }
+
+    #getActiveWorkspace() {
+      return WORKSPACES.find((w) => w.id === this.#activeWorkspaceId);
+    }
+
+    #getWorkspaceCommands() {
+      const workspace = this.#getActiveWorkspace();
+      if (!workspace || !workspace.commands) return COMMANDS;
+
+      const workspaceCommands = new Map();
+      workspace.commands.forEach((key) => {
+        const command = COMMANDS.get(key);
+        if (command) {
+          workspaceCommands.set(key, command);
+        }
+      });
+      return workspaceCommands;
+    }
+
+    #initializeEventListeners() {
+      window.addEventListener('workspacechange', (e) => {
+        this.#activeWorkspaceId = e.detail.workspaceId;
+        this.rerender();
+      });
     }
 
     render() {
@@ -547,9 +857,20 @@
       this.shadowRoot.append(clone);
     }
 
+    rerender() {
+      const commandsContainer = this.shadowRoot.querySelector('.commands');
+      if (!commandsContainer) return;
+
+      const commandTemplate = document.getElementById('command-template');
+      const fragment = this.createCommandsFragment(commandTemplate);
+      commandsContainer.innerHTML = '';
+      commandsContainer.appendChild(fragment);
+    }
+
     createCommandsFragment(commandTemplate) {
       const fragment = document.createDocumentFragment();
-      for (const [key, { name, url }] of COMMANDS.entries()) {
+      const workspaceCommands = this.#getWorkspaceCommands();
+      for (const [key, { name, url }] of workspaceCommands.entries()) {
         if (!name || !url) continue;
         const commandClone = this.createCommandElement(
           commandTemplate,
@@ -1681,6 +2002,7 @@
 
 <main>
   <div class="main-content">
+    <tabs-component></tabs-component>
     <clock-component></clock-component>
     <commands-component></commands-component>
     <search-component></search-component>
