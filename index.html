@@ -137,41 +137,28 @@
 
   // Commands
   const COMMANDS = new Map([
+    ['A', { name: 'Mastodon', url: 'https://social.lol', workspace: 'personal' }],
+    ['F', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'personal' }],
+    ['K', { name: 'Kagi News', url: 'https://news.kagi.com', workspace: 'personal' }],
     [
       'M',
       {
-        name: 'Mail',
-        url: 'https://mail.proton.me/',
+        name: 'Gmail',
+        url: 'https://mail.google.com',
         workspace: 'personal',
       },
     ],
     [
-      'G',
+      'P',
       {
-        name: 'GitHub',
-        url: 'https://github.com/',
-        workspace: 'dev',
-      },
-    ],
-    ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard', workspace: 'dev' }],
-    [
-      'B',
-      {
-        name: 'Pico',
-        url: 'https://pico.sh',
-        workspace: 'work',
-      },
-    ],
-    ['N', { name: 'Netflix', url: 'https://www.netflix.com/', workspace: 'personal' }],
-    [
-      'A',
-      {
-        name: 'Audiobooks',
-        url: 'https://audio.m1n.land',
+        name: 'Pastebin',
+        url: 'https://paste.m1n.land/',
         workspace: 'personal',
       },
     ],
-    ['T', { name: 'Twitch', url: 'https://www.twitch.tv', workspace: 'personal' }],
+    ['R', { name: 'RSS feed', url: 'https://owl.report/', workspace: 'personal' }],
+    ['H', { name: 'Twitch', url: 'https://www.twitch.tv', workspace: 'personal' }],
+    ['I', { name: 'Weather', url: 'https://merrysky.net/', workspace: 'personal' }],
     [
       'Y',
       {
@@ -181,27 +168,39 @@
         workspace: 'personal',
       },
     ],
-    ['R', { name: 'RSS feed', url: 'https://owl.report/', workspace: 'personal' }],
-    ['H', { name: 'Hacker News', url: 'https://news.ycombinator.com', workspace: 'dev' }],
     [
-      'P',
+      'B',
       {
-        name: 'Pastebin',
-        url: 'https://paste.m1n.land/',
-        workspace: 'work',
+        name: 'Pico',
+        url: 'https://pico.sh',
+        workspace: 'dev',
       },
     ],
-    ['O', { name: 'Cloudflare', url: 'https://dash.cloudflare.com', workspace: 'work' }],
-    ['F', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'work' }],
-    ['C', { name: 'Google Gemini', url: 'https://gemini.google.com', workspace: 'work' }],
+    ['C', { name: 'ChatGPT', url: 'https://chat.openai.com', workspace: 'work' }],
+    ['D', { name: 'NetxDB', url: 'https://netxdb.com', workspace: 'dev' }],
     [
-      'S',
+      'G',
+      {
+        name: 'GitHub',
+        url: 'https://github.com/',
+        workspace: 'dev',
+      },
+    ],
+    ['L', { name: 'Verl', url: 'https://verl.ai', workspace: 'dev' }],
+    ['O', { name: 'Cloudflare', url: 'https://dash.cloudflare.com', workspace: 'dev' }],
+    [
+      'Z',
       {
         name: 'Server',
         url: 'http://192.168.1.139',
         workspace: 'dev',
       },
     ],
+    ['J', { name: 'TRAE', url: 'https://www.trae.ai/account-setting#usage', workspace: 'dev' }],
+    ['U', { name: 'Sourcehut', url: 'https://sr.ht', workspace: 'dev' }],
+    ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard', workspace: 'dev' }],
+    ['N', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'work' }],
+    ['Q', { name: 'Outlook', url: 'https://outlook.office.com', workspace: 'work' }],
     ['1', { name: 'M1n', url: 'https://m1n.land/', workspace: 'personal' }],
   ]);
 
