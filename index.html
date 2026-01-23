@@ -137,71 +137,27 @@
 
   // Commands
   const COMMANDS = new Map([
-    ['A', { name: 'Mastodon', url: 'https://social.lol', workspace: 'personal' }],
-    ['F', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'personal' }],
-    ['K', { name: 'Kagi News', url: 'https://news.kagi.com', workspace: 'personal' }],
-    [
-      'M',
-      {
-        name: 'Gmail',
-        url: 'https://mail.google.com',
-        workspace: 'personal',
-      },
-    ],
-    [
-      'P',
-      {
-        name: 'Pastebin',
-        url: 'https://paste.m1n.land/',
-        workspace: 'personal',
-      },
-    ],
+    ['G', { name: 'Gmail', url: 'https://mail.google.com', workspace: 'personal' }],
+    ['Y', { name: 'YouTube', url: 'https://youtube.com', searchTemplate: '/results?search_query={}', workspace: 'personal' }],
+    ['T', { name: 'Twitch', url: 'https://www.twitch.tv', workspace: 'personal' }],
     ['R', { name: 'RSS feed', url: 'https://owl.report/', workspace: 'personal' }],
-    ['H', { name: 'Twitch', url: 'https://www.twitch.tv', workspace: 'personal' }],
-    ['I', { name: 'Weather', url: 'https://merrysky.net/', workspace: 'personal' }],
-    [
-      'Y',
-      {
-        name: 'YouTube',
-        searchTemplate: '/results?search_query={}',
-        url: 'https://youtube.com',
-        workspace: 'personal',
-      },
-    ],
-    [
-      'B',
-      {
-        name: 'Pico',
-        url: 'https://pico.sh',
-        workspace: 'dev',
-      },
-    ],
-    ['C', { name: 'ChatGPT', url: 'https://chat.openai.com', workspace: 'work' }],
-    ['D', { name: 'NetxDB', url: 'https://netxdb.com', workspace: 'dev' }],
-    [
-      'G',
-      {
-        name: 'GitHub',
-        url: 'https://github.com/',
-        workspace: 'dev',
-      },
-    ],
-    ['L', { name: 'Verl', url: 'https://verl.ai', workspace: 'dev' }],
-    ['O', { name: 'Cloudflare', url: 'https://dash.cloudflare.com', workspace: 'dev' }],
-    [
-      'Z',
-      {
-        name: 'Server',
-        url: 'http://192.168.1.139',
-        workspace: 'dev',
-      },
-    ],
-    ['J', { name: 'TRAE', url: 'https://www.trae.ai/account-setting#usage', workspace: 'dev' }],
-    ['U', { name: 'Sourcehut', url: 'https://sr.ht', workspace: 'dev' }],
-    ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard', workspace: 'dev' }],
-    ['N', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'work' }],
-    ['Q', { name: 'Outlook', url: 'https://outlook.office.com', workspace: 'work' }],
+    ['B', { name: 'Pastebin', url: 'https://paste.m1n.land/', workspace: 'personal' }],
+    ['M', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'personal' }],
+    ['K', { name: 'Kagi News', url: 'https://news.kagi.com', workspace: 'personal' }],
+    ['W', { name: 'Weather', url: 'https://merrysky.net/', workspace: 'personal' }],
+    ['A', { name: 'Mastodon', url: 'https://social.lol', workspace: 'personal' }],
     ['1', { name: 'M1n', url: 'https://m1n.land/', workspace: 'personal' }],
+    ['H', { name: 'GitHub', url: 'https://github.com/', workspace: 'dev' }],
+    ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard', workspace: 'dev' }],
+    ['F', { name: 'Cloudflare', url: 'https://dash.cloudflare.com', workspace: 'dev' }],
+    ['S', { name: 'Server', url: 'http://192.168.1.139', workspace: 'dev' }],
+    ['I', { name: 'Pico', url: 'https://pico.sh', workspace: 'dev' }],
+    ['N', { name: 'Neon', url: 'https://neon.tech', workspace: 'dev' }],
+    ['U', { name: 'Sourcehut', url: 'https://sr.ht', workspace: 'dev' }],
+    ['E', { name: 'TRAE', url: 'https://www.trae.ai/account-setting#usage', workspace: 'dev' }],
+    ['C', { name: 'ChatGPT', url: 'https://chat.openai.com', workspace: 'work' }],
+    ['O', { name: 'Outlook', url: 'https://outlook.office.com', workspace: 'work' }],
+    ['M', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'work' }],
   ]);
 
   // Workspace Manager
@@ -251,7 +207,17 @@
         }
         workspaceMap.get(workspaceId).commands.push(key);
       }
-      return Array.from(workspaceMap.values());
+      const orderedWorkspaces = Array.from(workspaceMap.values());
+      const order = ['personal', 'dev', 'work'];
+      orderedWorkspaces.sort((a, b) => {
+        const indexA = order.indexOf(a.id);
+        const indexB = order.indexOf(b.id);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.id.localeCompare(b.id);
+      });
+      return orderedWorkspaces;
     }
 
     #loadActiveWorkspace() {
@@ -306,6 +272,52 @@
 
   // Initialize WorkspaceManager
   const workspaceManager = new WorkspaceManager();
+
+  // Usage Tracker for sorting commands by frequency
+  class UsageTracker {
+    static #STORAGE_KEY = 'm1n-command-usage';
+    static #usageData = null;
+
+    static #loadUsageData() {
+      if (this.#usageData !== null) return this.#usageData;
+      try {
+        const stored = localStorage.getItem(this.#STORAGE_KEY);
+        this.#usageData = stored ? JSON.parse(stored) : {};
+      } catch {
+        this.#usageData = {};
+      }
+      return this.#usageData;
+    }
+
+    static #saveUsageData() {
+      try {
+        localStorage.setItem(this.#STORAGE_KEY, JSON.stringify(this.#usageData));
+      } catch (error) {
+        console.warn('Failed to save usage data:', error);
+      }
+    }
+
+    static recordUsage(commandKey) {
+      this.#loadUsageData();
+      this.#usageData[commandKey] = (this.#usageData[commandKey] || 0) + 1;
+      this.#saveUsageData();
+    }
+
+    static getUsageCount(commandKey) {
+      this.#loadUsageData();
+      return this.#usageData[commandKey] || 0;
+    }
+
+    static resetUsage(commandKey = null) {
+      this.#loadUsageData();
+      if (commandKey) {
+        delete this.#usageData[commandKey];
+      } else {
+        this.#usageData = {};
+      }
+      this.#saveUsageData();
+    }
+  }
 
   // Hacker News API functionality
   window.HackerNewsAPI = class HackerNewsAPI {
@@ -941,7 +953,13 @@
       const fragment = document.createDocumentFragment();
       const workspaceCommands = workspaceManager.getCommandsForWorkspace(this.#activeWorkspaceId);
       
-      for (const [key, { name, url }] of workspaceCommands.entries()) {
+      const sortedCommands = Array.from(workspaceCommands.entries()).sort((a, b) => {
+        const usageA = UsageTracker.getUsageCount(a[0]);
+        const usageB = UsageTracker.getUsageCount(b[0]);
+        return usageB - usageA;
+      });
+      
+      for (const [key, { name, url }] of sortedCommands) {
         if (!name || !url) continue;
         const commandClone = this.createCommandElement(
           commandTemplate,
@@ -959,6 +977,9 @@
       const command = clone.querySelector('.command');
       command.href = url;
       if (CONFIG.openLinksInNewTab) command.target = '_blank';
+      command.addEventListener('click', () => {
+        UsageTracker.recordUsage(key);
+      });
       clone.querySelector('.key').innerText = key;
       clone.querySelector('.name').innerText = name;
       return clone;
@@ -1260,8 +1281,12 @@
     }
 
     #execute(query) {
+      const parsedQuery = this.#parseQuery(query);
+      if (parsedQuery.key) {
+        UsageTracker.recordUsage(parsedQuery.key);
+      }
       const target = CONFIG.openLinksInNewTab ? '_blank' : '_self';
-      window.open(this.#parseQuery(query).url, target, 'noopener noreferrer');
+      window.open(parsedQuery.url, target, 'noopener noreferrer');
       this.#close();
     }
 
