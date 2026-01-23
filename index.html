@@ -137,25 +137,6 @@
     workspaceStorageKey: 'm1n-active-workspace',
   };
 
-  // Workspaces Configuration
-  const WORKSPACES = [
-    {
-      id: 'personal',
-      name: 'Personal',
-      commands: ['M', 'G', 'N', 'Y', 'A', 'T', 'R', 'P', 'H', '1'],
-    },
-    {
-      id: 'work',
-      name: 'Work',
-      commands: ['M', 'G', 'V', 'O', 'C', 'F', 'S', 'B'],
-    },
-    {
-      id: 'dev',
-      name: 'Dev',
-      commands: ['G', 'V', 'O', 'C', 'S', 'B', 'H', 'P'],
-    },
-  ];
-
   // Commands
   const COMMANDS = new Map([
     [
@@ -163,6 +144,7 @@
       {
         name: 'Mail',
         url: 'https://mail.proton.me/',
+        workspace: 'personal',
       },
     ],
     [
@@ -170,54 +152,163 @@
       {
         name: 'GitHub',
         url: 'https://github.com/',
+        workspace: 'dev',
       },
     ],
-    ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard' }],
+    ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard', workspace: 'dev' }],
     [
       'B',
       {
         name: 'Pico',
         url: 'https://pico.sh',
+        workspace: 'work',
       },
     ],
-    ['N', { name: 'Netflix', url: 'https://www.netflix.com/' }],
+    ['N', { name: 'Netflix', url: 'https://www.netflix.com/', workspace: 'personal' }],
     [
       'A',
       {
         name: 'Audiobooks',
         url: 'https://audio.m1n.land',
+        workspace: 'personal',
       },
     ],
-    ['T', { name: 'Twitch', url: 'https://www.twitch.tv' }],
+    ['T', { name: 'Twitch', url: 'https://www.twitch.tv', workspace: 'personal' }],
     [
       'Y',
       {
         name: 'YouTube',
         searchTemplate: '/results?search_query={}',
         url: 'https://youtube.com',
+        workspace: 'personal',
       },
     ],
-    ['R', { name: 'RSS feed', url: 'https://owl.report/' }],
-    ['H', { name: 'Hacker News', url: 'https://news.ycombinator.com' }],
+    ['R', { name: 'RSS feed', url: 'https://owl.report/', workspace: 'personal' }],
+    ['H', { name: 'Hacker News', url: 'https://news.ycombinator.com', workspace: 'dev' }],
     [
       'P',
       {
         name: 'Pastebin',
         url: 'https://paste.m1n.land/',
+        workspace: 'work',
       },
     ],
-    ['O', { name: 'Cloudflare', url: 'https://dash.cloudflare.com' }],
-    ['F', { name: 'Mymemo', url: 'https://app.mymemo.ai/home' }],
-    ['C', { name: 'Google Gemini', url: 'https://gemini.google.com' }],
+    ['O', { name: 'Cloudflare', url: 'https://dash.cloudflare.com', workspace: 'work' }],
+    ['F', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'work' }],
+    ['C', { name: 'Google Gemini', url: 'https://gemini.google.com', workspace: 'work' }],
     [
       'S',
       {
         name: 'Server',
         url: 'http://192.168.1.139',
+        workspace: 'dev',
       },
     ],
-    ['1', { name: 'M1n', url: 'https://m1n.land/' }],
+    ['1', { name: 'M1n', url: 'https://m1n.land/', workspace: 'personal' }],
   ]);
+
+  // Workspace Manager
+  class WorkspaceManager {
+    static #instance;
+    #activeWorkspaceId;
+    #workspaces;
+
+    constructor() {
+      if (WorkspaceManager.#instance) {
+        return WorkspaceManager.#instance;
+      }
+      WorkspaceManager.#instance = this;
+      this.#workspaces = this.#generateWorkspaces();
+      this.#loadActiveWorkspace();
+    }
+
+    static get instance() {
+      if (!WorkspaceManager.#instance) {
+        WorkspaceManager.#instance = new WorkspaceManager();
+      }
+      return WorkspaceManager.#instance;
+    }
+
+    get workspaces() {
+      return this.#workspaces;
+    }
+
+    get activeWorkspaceId() {
+      return this.#activeWorkspaceId;
+    }
+
+    get activeWorkspace() {
+      return this.#workspaces.find((w) => w.id === this.#activeWorkspaceId);
+    }
+
+    #generateWorkspaces() {
+      const workspaceMap = new Map();
+      for (const [key, command] of COMMANDS.entries()) {
+        const workspaceId = command.workspace || 'default';
+        if (!workspaceMap.has(workspaceId)) {
+          workspaceMap.set(workspaceId, {
+            id: workspaceId,
+            name: workspaceId.charAt(0).toUpperCase() + workspaceId.slice(1),
+            commands: [],
+          });
+        }
+        workspaceMap.get(workspaceId).commands.push(key);
+      }
+      return Array.from(workspaceMap.values());
+    }
+
+    #loadActiveWorkspace() {
+      try {
+        const stored = localStorage.getItem(CONFIG.workspaceStorageKey);
+        // Verify if stored workspace still exists
+        const exists = this.#workspaces.some(w => w.id === stored);
+        this.#activeWorkspaceId = exists ? stored : CONFIG.defaultWorkspace;
+      } catch {
+        this.#activeWorkspaceId = CONFIG.defaultWorkspace;
+      }
+    }
+
+    switchTo(workspaceId) {
+      if (this.#activeWorkspaceId === workspaceId) return;
+      
+      const exists = this.#workspaces.some(w => w.id === workspaceId);
+      if (!exists) return;
+
+      this.#activeWorkspaceId = workspaceId;
+      try {
+        localStorage.setItem(CONFIG.workspaceStorageKey, workspaceId);
+      } catch (error) {
+        console.warn('Failed to save workspace:', error);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('workspacechange', {
+          detail: { 
+            workspace: this.activeWorkspace, 
+            workspaceId: this.#activeWorkspaceId 
+          },
+          bubbles: true,
+        })
+      );
+    }
+
+    getCommandsForWorkspace(workspaceId) {
+      const workspace = this.#workspaces.find(w => w.id === workspaceId);
+      if (!workspace || !workspace.commands) return new Map();
+
+      const workspaceCommands = new Map();
+      workspace.commands.forEach((key) => {
+        const command = COMMANDS.get(key);
+        if (command) {
+          workspaceCommands.set(key, command);
+        }
+      });
+      return workspaceCommands;
+    }
+  }
+
+  // Initialize WorkspaceManager
+  const workspaceManager = new WorkspaceManager();
 
   // Hacker News API functionality
   window.HackerNewsAPI = class HackerNewsAPI {
@@ -352,7 +443,7 @@
     <div class="keyboard-hint">
       <span class="hint-group">
         <kbd>⌘</kbd>
-        <kbd>1-3</kbd>
+        <kbd class="workspace-hint"></kbd>
         <span>switch workspace</span>
       </span>
       <span class="hint-separator">·</span>
@@ -373,11 +464,13 @@
     #lastHours = -1;
     #lastMinutes = -1;
     #lastDate = '';
+    #workspaceHint;
 
     constructor() {
       super();
       this.attachShadow({ mode: 'open' });
       this.#initializeTemplate();
+      this.#updateWorkspaceHint();
       this.#updateClock();
       this.#interval = setInterval(() => this.#updateClock(), 1000);
     }
@@ -392,7 +485,19 @@
       this.#greeting = clone.querySelector('.greeting');
       this.#time = clone.querySelector('.time');
       this.#date = clone.querySelector('.date');
+      this.#workspaceHint = clone.querySelector('.workspace-hint');
       this.shadowRoot.append(clone);
+    }
+
+    #updateWorkspaceHint() {
+      if (this.#workspaceHint) {
+        const count = workspaceManager.workspaces.length;
+        if (count === 1) {
+          this.#workspaceHint.textContent = '1';
+        } else {
+          this.#workspaceHint.textContent = `1-${count}`;
+        }
+      }
     }
 
     #updateClock() {
@@ -529,16 +634,13 @@
   class Tabs extends HTMLElement {
     #tabsContainer;
     #tabTemplate;
-    #activeWorkspaceId;
 
     constructor() {
       super();
       this.attachShadow({ mode: 'open' });
       this.#initializeTemplate();
-      this.#loadActiveWorkspace();
       this.#renderTabs();
       this.#initializeEventListeners();
-      this.#notifyWorkspaceChange();
     }
 
     #initializeTemplate() {
@@ -549,26 +651,11 @@
       this.shadowRoot.append(clone);
     }
 
-    #loadActiveWorkspace() {
-      try {
-        const stored = localStorage.getItem(CONFIG.workspaceStorageKey);
-        this.#activeWorkspaceId = stored || CONFIG.defaultWorkspace;
-      } catch {
-        this.#activeWorkspaceId = CONFIG.defaultWorkspace;
-      }
-    }
-
-    #saveActiveWorkspace(workspaceId) {
-      try {
-        localStorage.setItem(CONFIG.workspaceStorageKey, workspaceId);
-      } catch (error) {
-        console.warn('Failed to save workspace:', error);
-      }
-    }
-
     #renderTabs() {
       const fragment = document.createDocumentFragment();
-      WORKSPACES.forEach((workspace, index) => {
+      const activeId = workspaceManager.activeWorkspaceId;
+
+      workspaceManager.workspaces.forEach((workspace, index) => {
         const clone = this.#tabTemplate.content.cloneNode(true);
         const tab = clone.querySelector('.tab');
         const tabKey = clone.querySelector('.tab-key');
@@ -578,7 +665,7 @@
         tabKey.textContent = index + 1;
         tabName.textContent = workspace.name;
 
-        if (workspace.id === this.#activeWorkspaceId) {
+        if (workspace.id === activeId) {
           tab.classList.add('active');
         }
 
@@ -594,9 +681,7 @@
         if (!tab) return;
 
         const workspaceId = tab.dataset.workspaceId;
-        if (workspaceId === this.#activeWorkspaceId) return;
-
-        this.#switchWorkspace(workspaceId);
+        this.switchToWorkspace(workspaceId);
       });
 
       this.#tabsContainer.addEventListener('keydown', (e) => {
@@ -614,31 +699,20 @@
           if (nextTab) nextTab.focus();
         }
       });
+
+      window.addEventListener('workspacechange', (e) => {
+        this.#updateActiveTab(e.detail.workspaceId);
+      });
     }
 
-    #switchWorkspace(workspaceId) {
-      this.#activeWorkspaceId = workspaceId;
-      this.#saveActiveWorkspace(workspaceId);
-
+    #updateActiveTab(workspaceId) {
       this.#tabsContainer.querySelectorAll('.tab').forEach((tab) => {
         tab.classList.toggle('active', tab.dataset.workspaceId === workspaceId);
       });
-
-      this.#notifyWorkspaceChange();
-    }
-
-    #notifyWorkspaceChange() {
-      const workspace = WORKSPACES.find((w) => w.id === this.#activeWorkspaceId);
-      window.dispatchEvent(
-        new CustomEvent('workspacechange', {
-          detail: { workspace, workspaceId: this.#activeWorkspaceId },
-          bubbles: true,
-        })
-      );
     }
 
     switchToWorkspace(workspaceId) {
-      this.#switchWorkspace(workspaceId);
+      workspaceManager.switchTo(workspaceId);
     }
   }
 
@@ -649,11 +723,9 @@
   <style>
     .commands {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
       gap: 0;
       list-style: none;
       margin: 0 auto;
-      max-width: 24rem;
       padding: 0;
       width: 100%;
       background: transparent;
@@ -666,21 +738,19 @@
       display: flex;
       gap: calc(var(--space) * 0.6);
       outline: 0;
-      padding: calc(var(--space) * 0.7) calc(var(--space) * 0.9);
+      padding: calc(var(--space) * 0.8) calc(var(--space) * 1);
       position: relative;
       text-decoration: none;
-      min-height: 40px;
+      min-height: 48px;
       align-items: center;
       background: transparent;
-      border-right: 1px solid var(--color-focus);
-      border-bottom: 1px solid var(--color-focus);
       transition: color var(--transition-speed) var(--transition-easing),
         border-color var(--transition-speed) var(--transition-easing);
     }
 
     .command:hover {
       color: var(--color-text);
-      border-color: var(--color-text-subtle);
+      background: var(--color-focus);
     }
 
     .command:focus {
@@ -694,10 +764,10 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 1.6rem;
-      height: 1.6rem;
+      width: 1.8rem;
+      height: 1.8rem;
       font-weight: var(--font-weight-bold);
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       letter-spacing: 0.04em;
       background: transparent;
       border: 1px solid var(--color-accent);
@@ -709,7 +779,7 @@
       color: var(--color-text-subtle);
       transition: color var(--transition-speed) var(--transition-easing);
       letter-spacing: 0.04em;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       text-transform: uppercase;
       white-space: nowrap;
       overflow: hidden;
@@ -721,67 +791,9 @@
       color: var(--color-text);
     }
 
-    .command:nth-child(2n) {
-      border-right: none;
-    }
-
-    .command:nth-last-child(-n + 2) {
-      border-bottom: none;
-    }
-
-    @media (min-width: 600px) {
-      .commands {
-        grid-template-columns: repeat(5, 1fr);
-        max-width: 60rem;
-      }
-
-      .command {
-        border-right: 1px solid var(--color-focus);
-        border-bottom: 1px solid var(--color-focus);
-      }
-
-      .command:nth-child(2n) {
-        border-right: 1px solid var(--color-focus);
-      }
-
-      .command:nth-last-child(-n + 2) {
-        border-bottom: 1px solid var(--color-focus);
-      }
-
-      .command:nth-child(5n) {
-        border-right: none;
-      }
-
-      .command:nth-last-child(-n + 5) {
-        border-bottom: none;
-      }
-    }
-
     @media (min-width: 900px) {
-      .commands {
-        grid-template-columns: repeat(4, 1fr);
-        max-width: 48rem;
-      }
-
       .command {
-        border-right: 1px solid var(--color-focus);
-        border-bottom: 1px solid var(--color-focus);
-      }
-
-      .command:nth-child(2n) {
-        border-right: 1px solid var(--color-focus);
-      }
-
-      .command:nth-last-child(-n + 2) {
-        border-bottom: 1px solid var(--color-focus);
-      }
-
-      .command:nth-child(4n) {
-        border-right: none;
-      }
-
-      .command:nth-last-child(-n + 4) {
-        border-bottom: none;
+        padding: calc(var(--space) * 0.9) calc(var(--space) * 1.1);
       }
     }
   </style>
@@ -802,40 +814,83 @@
 <script type="module">
   class Commands extends HTMLElement {
     #activeWorkspaceId;
+    #dynamicStyle;
 
     constructor() {
       super();
       this.attachShadow({ mode: 'open' });
-      this.#loadActiveWorkspace();
+      this.#createDynamicStyle();
+      this.#activeWorkspaceId = workspaceManager.activeWorkspaceId;
       this.render();
       this.#initializeEventListeners();
     }
 
-    #loadActiveWorkspace() {
-      try {
-        const stored = localStorage.getItem(CONFIG.workspaceStorageKey);
-        this.#activeWorkspaceId = stored || CONFIG.defaultWorkspace;
-      } catch {
-        this.#activeWorkspaceId = CONFIG.defaultWorkspace;
-      }
+    #createDynamicStyle() {
+      this.#dynamicStyle = document.createElement('style');
+      this.shadowRoot.appendChild(this.#dynamicStyle);
     }
 
-    #getActiveWorkspace() {
-      return WORKSPACES.find((w) => w.id === this.#activeWorkspaceId);
-    }
+    #calculateOptimalColumns(count, maxCols) {
+      if (count <= 1) return 1;
+      
+      const minCols = 2;
+      // Cap maxCols by count to avoid empty columns
+      const effectiveMax = Math.min(maxCols, count);
+      
+      let bestCols = minCols;
+      let minEmpty = Infinity;
 
-    #getWorkspaceCommands() {
-      const workspace = this.#getActiveWorkspace();
-      if (!workspace || !workspace.commands) return COMMANDS;
-
-      const workspaceCommands = new Map();
-      workspace.commands.forEach((key) => {
-        const command = COMMANDS.get(key);
-        if (command) {
-          workspaceCommands.set(key, command);
+      for (let c = minCols; c <= effectiveMax; c++) {
+        const rows = Math.ceil(count / c);
+        const empty = (rows * c) - count;
+        
+        // Minimize empty cells, tie-break with wider layout
+        if (empty < minEmpty) {
+          minEmpty = empty;
+          bestCols = c;
+        } else if (empty === minEmpty) {
+          bestCols = c;
         }
-      });
-      return workspaceCommands;
+      }
+      
+      return bestCols;
+    }
+
+    #generateGridCSS(cols) {
+      return `
+        .commands {
+          grid-template-columns: repeat(${cols}, 1fr);
+          max-width: ${cols * 12}rem;
+        }
+        .command {
+          border-right: 1px solid var(--color-focus);
+          border-bottom: 1px solid var(--color-focus);
+        }
+        .command:nth-child(${cols}n) {
+          border-right: none;
+        }
+        .command:nth-last-child(-n + ${cols}) {
+          border-bottom: none;
+        }
+      `;
+    }
+
+    #updateGridStyles(count) {
+      const colsMobile = this.#calculateOptimalColumns(count, 3);
+      const colsTablet = this.#calculateOptimalColumns(count, 4);
+      const colsDesktop = this.#calculateOptimalColumns(count, 6);
+      
+      this.#dynamicStyle.textContent = `
+        @media (max-width: 599px) {
+          ${this.#generateGridCSS(colsMobile)}
+        }
+        @media (min-width: 600px) and (max-width: 899px) {
+          ${this.#generateGridCSS(colsTablet)}
+        }
+        @media (min-width: 900px) {
+          ${this.#generateGridCSS(colsDesktop)}
+        }
+      `;
     }
 
     #initializeEventListeners() {
@@ -852,8 +907,16 @@
       const commandTemplate = document.getElementById('command-template');
 
       const fragment = this.createCommandsFragment(commandTemplate);
-      commandsContainer.appendChild(fragment);
+      const count = fragment.children.length;
+      
+      if (count === 0) {
+        this.shadowRoot.append(clone);
+        commandsContainer.style.display = 'none';
+        return;
+      }
 
+      this.#updateGridStyles(count);
+      commandsContainer.appendChild(fragment);
       this.shadowRoot.append(clone);
     }
 
@@ -863,13 +926,24 @@
 
       const commandTemplate = document.getElementById('command-template');
       const fragment = this.createCommandsFragment(commandTemplate);
+      const count = fragment.children.length;
+      
       commandsContainer.innerHTML = '';
+
+      if (count === 0) {
+        commandsContainer.style.display = 'none';
+        return;
+      }
+
+      this.#updateGridStyles(count);
       commandsContainer.appendChild(fragment);
+      commandsContainer.style.display = 'grid';
     }
 
     createCommandsFragment(commandTemplate) {
       const fragment = document.createDocumentFragment();
-      const workspaceCommands = this.#getWorkspaceCommands();
+      const workspaceCommands = workspaceManager.getCommandsForWorkspace(this.#activeWorkspaceId);
+      
       for (const [key, { name, url }] of workspaceCommands.entries()) {
         if (!name || !url) continue;
         const commandClone = this.createCommandElement(
@@ -1037,10 +1111,12 @@
     #matchTemplate;
     #debounceTimeout;
     #lastRequestId = 0;
+    #activeWorkspaceId;
 
     constructor() {
       super();
       this.attachShadow({ mode: 'open' });
+      this.#activeWorkspaceId = workspaceManager.activeWorkspaceId;
       this.#initializeTemplate();
       this.#initializeEventListeners();
     }
@@ -1074,6 +1150,9 @@
         this.#onSuggestionClick.bind(this)
       );
       document.addEventListener('keydown', this.#onKeydown.bind(this));
+      window.addEventListener('workspacechange', (e) => {
+        this.#activeWorkspaceId = e.detail.workspaceId;
+      });
     }
 
     static #debounce(fn, delay) {
@@ -1120,12 +1199,12 @@
       return CONFIG.commandCaseSensitive ? key : key.toLowerCase();
     }
 
-    static #getCommand(key) {
+    static #getCommand(key, workspaceCommands) {
       if (CONFIG.commandCaseSensitive) {
-        return COMMANDS.get(key);
+        return workspaceCommands.get(key);
       } else {
         const lowerKey = key.toLowerCase();
-        for (const [cmdKey, value] of COMMANDS) {
+        for (const [cmdKey, value] of workspaceCommands) {
           if (cmdKey.toLowerCase() === lowerKey) {
             return value;
           }
@@ -1134,16 +1213,17 @@
       }
     }
 
-    static #parseQuery(raw) {
+    #parseQuery(raw) {
+      const workspaceCommands = workspaceManager.getCommandsForWorkspace(this.#activeWorkspaceId);
       const query = raw.trim();
-      const compareQuery = this.#compareKey(query);
+      const compareQuery = Search.#compareKey(query);
 
-      if (this.#isUrl(query)) {
-        const url = this.#hasProtocol(query) ? query : `https://${query}`;
+      if (Search.#isUrl(query)) {
+        const url = Search.#hasProtocol(query) ? query : `https://${query}`;
         return { query, url };
       }
 
-      const command = this.#getCommand(query);
+      const command = Search.#getCommand(query, workspaceCommands);
       if (command) {
         return { key: query, query, url: command.url };
       }
@@ -1151,27 +1231,27 @@
       const [commandPart, searchPart] = query.split(
         new RegExp(`${CONFIG.commandSearchDelimiter}(.*)`)
       );
-      const commandPartCommand = this.#getCommand(commandPart);
+      const commandPartCommand = Search.#getCommand(commandPart, workspaceCommands);
       if (commandPartCommand) {
         const search = searchPart ? searchPart.trim() : '';
         const template = new URL(
           commandPartCommand.searchTemplate ?? '',
           commandPartCommand.url
         );
-        const url = this.#formatSearchUrl(decodeURI(template.href), search);
+        const url = Search.#formatSearchUrl(decodeURI(template.href), search);
         return { key: commandPart, query, search, url };
       }
 
       const [pathKey, path] = query.split(
         new RegExp(`${CONFIG.commandPathDelimiter}(.*)`)
       );
-      const pathKeyCommand = this.#getCommand(pathKey);
+      const pathKeyCommand = Search.#getCommand(pathKey, workspaceCommands);
       if (pathKeyCommand) {
         const url = `${new URL(pathKeyCommand.url).origin}/${path || ''}`;
         return { key: pathKey, path, query, url };
       }
 
-      const url = this.#formatSearchUrl(CONFIG.defaultSearchTemplate, query);
+      const url = Search.#formatSearchUrl(CONFIG.defaultSearchTemplate, query);
       return { query, search: query, url };
     }
 
@@ -1184,7 +1264,7 @@
 
     #execute(query) {
       const target = CONFIG.openLinksInNewTab ? '_blank' : '_self';
-      window.open(Search.#parseQuery(query).url, target, 'noopener noreferrer');
+      window.open(this.#parseQuery(query).url, target, 'noopener noreferrer');
       this.#close();
     }
 
@@ -1206,14 +1286,15 @@
 
     async #onInput() {
       const requestId = ++this.#lastRequestId;
-      const parsedQuery = Search.#parseQuery(this.#input.value);
+      const workspaceCommands = workspaceManager.getCommandsForWorkspace(this.#activeWorkspaceId);
+      const parsedQuery = this.#parseQuery(this.#input.value);
 
       if (!parsedQuery.query) {
         this.#close();
         return;
       }
 
-      const command = Search.#getCommand(parsedQuery.key || parsedQuery.query);
+      const command = Search.#getCommand(parsedQuery.key || parsedQuery.query, workspaceCommands);
       let suggestions = command?.suggestions ?? [];
 
       if (parsedQuery.search && suggestions.length < CONFIG.suggestionLimit) {
@@ -1232,7 +1313,7 @@
         );
       }
 
-      const newParsedQuery = Search.#parseQuery(this.#input.value);
+      const newParsedQuery = this.#parseQuery(this.#input.value);
       if (
         Search.#compareKey(newParsedQuery.query) !==
         Search.#compareKey(parsedQuery.query)
