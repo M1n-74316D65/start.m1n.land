@@ -1397,6 +1397,11 @@
     }
 
     #onKeydown(e) {
+      // Prevent Alt key (alone or with non-number keys) from activating search
+      if (e.altKey && !/^[1-9]$/.test(e.key)) {
+        return;
+      }
+
       if (!this.#dialog.open) {
         this.#dialog.show();
         this.#input.focus();
