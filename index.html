@@ -1402,6 +1402,11 @@
         return;
       }
 
+      // Don't open search dialog when any modifier keys are pressed
+      if (e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
+
       if (!this.#dialog.open) {
         this.#dialog.show();
         this.#input.focus();
