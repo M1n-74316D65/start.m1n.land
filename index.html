@@ -43,9 +43,7 @@
     --transition-speed: 180ms;
     --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
     --transition-speed-fast: 100ms;
-    --hover-opacity: 0.12;
-    --active-opacity: 0.18;
-    --focus-border-width: 1px;
+  
     --grid-border: 1px solid var(--color-focus);
   }
 
@@ -64,28 +62,19 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
 <script>
-  // Constants
-  const SERVICE_WORKER_PATH = '/service-worker.js';
-  const SERVICE_WORKER_SCOPE_MSG =
-    'ServiceWorker registration successful with scope: ';
-  const SERVICE_WORKER_ERROR_MSG = 'ServiceWorker registration failed: ';
-
   // Service Worker Registration
   function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register(SERVICE_WORKER_PATH).then(
+        navigator.serviceWorker.register('/service-worker.js').then(
           (registration) => {
-            console.log(SERVICE_WORKER_SCOPE_MSG, registration.scope);
+            console.log('ServiceWorker registration successful with scope:', registration.scope);
           },
           (error) => {
-            console.log(SERVICE_WORKER_ERROR_MSG, error);
+            console.log('ServiceWorker registration failed:', error);
           }
         );
       });
@@ -142,27 +131,29 @@
 
   // Commands
   const COMMANDS = new Map([
-    ['G', { name: 'Proton Mail', url: 'https://mail.proton.me', workspace: 'personal' }],
-    ['Y', { name: 'YouTube', url: 'https://youtube.com', searchTemplate: '/results?search_query={}', workspace: 'personal' }],
-    ['T', { name: 'Twitch', url: 'https://www.twitch.tv', workspace: 'personal' }],
-    ['R', { name: 'RSS feed', url: 'https://owl.report/', workspace: 'personal' }],
-    ['B', { name: 'Pastebin', url: 'https://paste.m1n.land/', workspace: 'personal' }],
-    ['M', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'personal' }],
-    ['K', { name: 'Kagi News', url: 'https://news.kagi.com', workspace: 'personal' }],
-    ['W', { name: 'Weather', url: 'https://merrysky.net/', workspace: 'personal' }],
-    ['A', { name: 'Mastodon', url: 'https://social.lol', workspace: 'personal' }],
+    // Personal (alphabetical by key)
     ['1', { name: 'M1n', url: 'https://m1n.land/', workspace: 'personal' }],
-    ['H', { name: 'GitHub', url: 'https://github.com/', workspace: 'dev' }],
-    ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard', workspace: 'dev' }],
+    ['A', { name: 'Mastodon', url: 'https://social.lol', workspace: 'personal' }],
+    ['B', { name: 'Pastebin', url: 'https://paste.m1n.land/', workspace: 'personal' }],
+    ['C', { name: 'Kimi', url: 'https://www.kimi.com/bot', workspace: 'personal' }],
+    ['G', { name: 'Proton Mail', url: 'https://mail.proton.me', workspace: 'personal' }],
+    ['M', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'personal' }],
+    ['R', { name: 'RSS feed', url: 'https://owl.report/', workspace: 'personal' }],
+    ['T', { name: 'Twitch', url: 'https://www.twitch.tv', workspace: 'personal' }],
+    ['W', { name: 'Weather', url: 'https://merrysky.net/', workspace: 'personal' }],
+    ['Y', { name: 'YouTube', url: 'https://youtube.com', searchTemplate: '/results?search_query={}', workspace: 'personal' }],
+    // Dev (alphabetical by key)
+    ['E', { name: 'TRAE', url: 'https://www.trae.ai/account-setting#usage', workspace: 'dev' }],
     ['F', { name: 'Cloudflare', url: 'https://dash.cloudflare.com', workspace: 'dev' }],
-    ['S', { name: 'Server', url: 'http://192.168.1.139', workspace: 'dev' }],
+    ['H', { name: 'GitHub', url: 'https://github.com/', workspace: 'dev' }],
     ['I', { name: 'Pico', url: 'https://pico.sh', workspace: 'dev' }],
     ['N', { name: 'Neon', url: 'https://neon.tech', workspace: 'dev' }],
+    ['S', { name: 'Server', url: 'http://192.168.1.139', workspace: 'dev' }],
     ['U', { name: 'Sourcehut', url: 'https://sr.ht', workspace: 'dev' }],
-    ['E', { name: 'TRAE', url: 'https://www.trae.ai/account-setting#usage', workspace: 'dev' }],
-     ['C', { name: 'Mistral AI Chat', url: 'https://chat.mistral.ai/chat', workspace: 'work' }],
+    ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard', workspace: 'dev' }],
+    // Work (alphabetical by key)
+    ['J', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'work' }],
     ['O', { name: 'Outlook', url: 'https://outlook.office.com', workspace: 'work' }],
-    ['M', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'work' }],
   ]);
 
   // Workspace Manager
@@ -310,8 +301,8 @@
     static #saveUsageData() {
       try {
         localStorage.setItem(this.#STORAGE_KEY, JSON.stringify(this.#usageData));
-      } catch (error) {
-        console.warn('Failed to save usage data:', error);
+      } catch {
+        // Silently fail if storage is unavailable
       }
     }
 
@@ -370,19 +361,13 @@
     }
 
     static formatTime(timestamp) {
-      const now = Date.now();
-      const storyTime = timestamp * 1000;
-      const diffInHours = Math.floor((now - storyTime) / (1000 * 60 * 60));
-
-      if (diffInHours < 1) {
-        const diffInMinutes = Math.floor((now - storyTime) / (1000 * 60));
-        return `${diffInMinutes}m ago`;
-      } else if (diffInHours < 24) {
-        return `${diffInHours}h ago`;
-      } else {
-        const diffInDays = Math.floor(diffInHours / 24);
-        return `${diffInDays}d ago`;
-      }
+      const diffMs = Date.now() - timestamp * 1000;
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return `${Math.floor(diffHours / 24)}d ago`;
     }
 
     static formatScore(score) {
@@ -856,6 +841,8 @@
   class Commands extends HTMLElement {
     #activeWorkspaceId;
     #dynamicStyle;
+    #sortedCommandsCache = null;
+    #cachedWorkspaceId = null;
 
     constructor() {
       super();
@@ -933,6 +920,7 @@
     #initializeEventListeners() {
       window.addEventListener('workspacechange', (e) => {
         this.#activeWorkspaceId = e.detail.workspaceId;
+        this.#sortedCommandsCache = null; // Invalidate cache on workspace change
         this.rerender();
       });
     }
@@ -964,28 +952,41 @@
       const commandTemplate = document.getElementById('command-template');
       const fragment = this.createCommandsFragment(commandTemplate);
       const count = fragment.children.length;
-      
-      commandsContainer.innerHTML = '';
 
       if (count === 0) {
         commandsContainer.style.display = 'none';
         return;
       }
 
+      // Use replaceChildren for better performance than innerHTML
+      commandsContainer.replaceChildren(fragment);
       this.#updateGridStyles(count);
-      commandsContainer.appendChild(fragment);
       commandsContainer.style.display = 'grid';
+    }
+
+    #getSortedCommands(workspaceCommands) {
+      // Use cache if available and workspace hasn't changed
+      if (this.#sortedCommandsCache && this.#cachedWorkspaceId === this.#activeWorkspaceId) {
+        return this.#sortedCommandsCache;
+      }
+      
+      const sorted = Array.from(workspaceCommands.entries()).sort((a, b) => {
+        const usageA = UsageTracker.getUsageCount(a[0]);
+        const usageB = UsageTracker.getUsageCount(b[0]);
+        return usageB - usageA;
+      });
+      
+      // Update cache
+      this.#sortedCommandsCache = sorted;
+      this.#cachedWorkspaceId = this.#activeWorkspaceId;
+      
+      return sorted;
     }
 
     createCommandsFragment(commandTemplate) {
       const fragment = document.createDocumentFragment();
       const workspaceCommands = workspaceManager.getCommandsForWorkspace(this.#activeWorkspaceId);
-      
-      const sortedCommands = Array.from(workspaceCommands.entries()).sort((a, b) => {
-        const usageA = UsageTracker.getUsageCount(a[0]);
-        const usageB = UsageTracker.getUsageCount(b[0]);
-        return usageB - usageA;
-      });
+      const sortedCommands = this.#getSortedCommands(workspaceCommands);
       
       for (const [key, { name, url }] of sortedCommands) {
         if (!name || !url) continue;
@@ -1162,7 +1163,6 @@
     #suggestionTemplate;
     #matchTemplate;
     #debounceTimeout;
-    #lastRequestId = 0;
     #activeWorkspaceId;
 
     constructor() {
@@ -1174,9 +1174,7 @@
     }
 
     disconnectedCallback() {
-      if (this.#debounceTimeout) {
-        clearTimeout(this.#debounceTimeout);
-      }
+      clearTimeout(this.#debounceTimeout);
     }
 
     #initializeTemplate() {
@@ -1210,27 +1208,29 @@
     static #debounce(fn, delay) {
       let timeoutId;
       return function (...args) {
-        if (timeoutId) clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
         timeoutId = setTimeout(() => fn.apply(this, args), delay);
       };
     }
 
-    static #escapeRegexCharacters(s) {
-      return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    }
-
     static #fetchDuckDuckGoSuggestions(search) {
       return new Promise((resolve) => {
-        window.autocompleteCallback = (res) => {
+        const callbackName = `ac_${Date.now()}`;
+        window[callbackName] = (res) => {
           const suggestions = res
             .filter((item) => item.phrase !== search.toLowerCase())
             .map((item) => item.phrase);
+          delete window[callbackName];
           resolve(suggestions);
         };
 
         const script = document.createElement('script');
-        document.querySelector('head').appendChild(script);
-        script.src = `https://duckduckgo.com/ac/?callback=autocompleteCallback&q=${search}`;
+        script.src = `https://duckduckgo.com/ac/?callback=${callbackName}&q=${encodeURIComponent(search)}`;
+        script.onerror = () => {
+          delete window[callbackName];
+          resolve([]);
+        };
+        document.head.appendChild(script);
         script.onload = () => script.remove();
       });
     }
@@ -1251,14 +1251,15 @@
       return CONFIG.commandCaseSensitive ? key : key.toLowerCase();
     }
 
-    static #getCommand(key, workspaceCommands) {
+    static #getCommandWithKey(key, workspaceCommands) {
       if (CONFIG.commandCaseSensitive) {
-        return workspaceCommands.get(key);
+        const command = workspaceCommands.get(key);
+        return command ? { command, key } : undefined;
       } else {
         const lowerKey = key.toLowerCase();
         for (const [cmdKey, value] of workspaceCommands) {
           if (cmdKey.toLowerCase() === lowerKey) {
-            return value;
+            return { command: value, key: cmdKey };
           }
         }
         return undefined;
@@ -1275,32 +1276,32 @@
         return { query, url };
       }
 
-      const command = Search.#getCommand(query, workspaceCommands);
-      if (command) {
-        return { key: query, query, url: command.url };
+      const result = Search.#getCommandWithKey(query, workspaceCommands);
+      if (result) {
+        return { key: result.key, query, url: result.command.url };
       }
 
       const [commandPart, searchPart] = query.split(
         new RegExp(`${CONFIG.commandSearchDelimiter}(.*)`)
       );
-      const commandPartCommand = Search.#getCommand(commandPart, workspaceCommands);
-      if (commandPartCommand) {
+      const commandPartResult = Search.#getCommandWithKey(commandPart, workspaceCommands);
+      if (commandPartResult) {
         const search = searchPart ? searchPart.trim() : '';
         const template = new URL(
-          commandPartCommand.searchTemplate ?? '',
-          commandPartCommand.url
+          commandPartResult.command.searchTemplate ?? '',
+          commandPartResult.command.url
         );
         const url = Search.#formatSearchUrl(decodeURI(template.href), search);
-        return { key: commandPart, query, search, url };
+        return { key: commandPartResult.key, query, search, url };
       }
 
       const [pathKey, path] = query.split(
         new RegExp(`${CONFIG.commandPathDelimiter}(.*)`)
       );
-      const pathKeyCommand = Search.#getCommand(pathKey, workspaceCommands);
-      if (pathKeyCommand) {
-        const url = `${new URL(pathKeyCommand.url).origin}/${path || ''}`;
-        return { key: pathKey, path, query, url };
+      const pathKeyResult = Search.#getCommandWithKey(pathKey, workspaceCommands);
+      if (pathKeyResult) {
+        const url = `${new URL(pathKeyResult.command.url).origin}/${path || ''}`;
+        return { key: pathKeyResult.key, path, query, url };
       }
 
       const url = Search.#formatSearchUrl(CONFIG.defaultSearchTemplate, query);
@@ -1311,15 +1312,13 @@
       this.#input.value = '';
       this.#input.blur();
       
-      // Add fade-out animation
-      this.#dialog.style.transition = 'opacity 0.1s ease';
-      this.#dialog.style.opacity = '0';
+      // Fade-out animation
+      this.#dialog.style.cssText = 'transition: opacity 0.1s ease; opacity: 0;';
       
       setTimeout(() => {
         this.#dialog.close();
-        this.#suggestions.innerHTML = '';
-        this.#dialog.style.opacity = '1';
-        this.#dialog.style.transition = '';
+        this.#suggestions.replaceChildren();
+        this.#dialog.style.cssText = '';
       }, 100);
     }
 
@@ -1350,7 +1349,6 @@
     }
 
     async #onInput() {
-      const requestId = ++this.#lastRequestId;
       const workspaceCommands = workspaceManager.getCommandsForWorkspace(this.#activeWorkspaceId);
       const parsedQuery = this.#parseQuery(this.#input.value);
 
@@ -1359,15 +1357,13 @@
         return;
       }
 
-      const command = Search.#getCommand(parsedQuery.key || parsedQuery.query, workspaceCommands);
-      let suggestions = command?.suggestions ?? [];
+      const result = Search.#getCommandWithKey(parsedQuery.key || parsedQuery.query, workspaceCommands);
+      let suggestions = result?.command?.suggestions ?? [];
 
       if (parsedQuery.search && suggestions.length < CONFIG.suggestionLimit) {
         const ddgSuggestions = await Search.#fetchDuckDuckGoSuggestions(
           parsedQuery.search
         );
-
-        if (requestId !== this.#lastRequestId) return;
 
         suggestions = suggestions.concat(
           parsedQuery.key
@@ -1456,7 +1452,7 @@
     }
 
     #renderSuggestions(suggestions, query) {
-      this.#suggestions.innerHTML = '';
+      this.#suggestions.replaceChildren();
 
       const fragment = document.createDocumentFragment();
       suggestions
@@ -2074,8 +2070,7 @@
         fragment.appendChild(clone);
       });
 
-      this.#newsList.innerHTML = '';
-      this.#newsList.appendChild(fragment);
+      this.#newsList.replaceChildren(fragment);
     }
   }
 
