@@ -13,14 +13,14 @@
   content="#fafafa"
   media="(prefers-color-scheme: light)"
 />
+<meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta
-  name="apple-mobile-web-app-status-bar-style"
-  content="black-translucent"
-/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="M1n Startpage" />
+<meta name="application-name" content="M1n Startpage" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="apple-touch-icon" href="/images/favicon-8.png" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
 <title>M1n Startpage</title>
 
 <style>
@@ -377,6 +377,30 @@
       return score.toString();
     }
   };
+
+  // Dynamic theme color updater
+  function updateThemeColor() {
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const color = isDark ? '#0c0d0d' : '#f3f4f4';
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+  }
+
+  // Listen for color scheme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateThemeColor);
+  updateThemeColor();
+
+  // PWA Install detection
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    console.log('PWA install available');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    console.log('PWA installed');
+  });
 
   // Initialize
   registerServiceWorker();

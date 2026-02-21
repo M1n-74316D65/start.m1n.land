@@ -1,128 +1,169 @@
-const CACHE_NAME = 'startpage-cache-v4';
-const urlsToCache = [
+const CACHE_NAME = 'startpage-cache-v5';
+const STATIC_CACHE = 'static-v5';
+
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/service-worker.js',
   '/favicon.ico',
   '/images/favicon-7.png',
   '/images/favicon-8.png',
 ];
 
+const EXTERNAL_ASSETS = [
+  'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap',
+];
+
+// Install: Cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+    caches
+      .open(STATIC_CACHE)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
       .then(() => self.skipWaiting())
   );
 });
 
+// Activate: Clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((cacheNames) =>
+        Promise.all(
+          cacheNames
+            .filter((name) => name !== STATIC_CACHE && name !== CACHE_NAME)
+            .map((name) => caches.delete(name))
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
+// Message handling
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  
-  if (event.data && event.data.type === 'UPDATE_CACHE') {
+
+  if (event.data?.type === 'UPDATE_CACHE') {
     event.waitUntil(updateCache());
   }
 });
 
+// Update cache with fresh content
 async function updateCache() {
   try {
-    const cache = await caches.open(CACHE_NAME);
-    // Fetch all URLs to ensure we have the latest versions
-    await Promise.all(urlsToCache.map(url => 
-      fetch(url, { cache: 'reload' }).then(response => {
-        if (response.ok) {
-          return cache.put(url, response);
+    const cache = await caches.open(STATIC_CACHE);
+
+    await Promise.all(
+      STATIC_ASSETS.map(async (url) => {
+        try {
+          const response = await fetch(url, { cache: 'reload' });
+          if (response.ok) {
+            await cache.put(url, response);
+          }
+        } catch (err) {
+          console.warn(`Failed to update cache for ${url}:`, err);
         }
       })
-    ));
-    
-    // Notify all clients that cache has been updated
+    );
+
+    // Notify clients
     const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({ type: 'CACHE_UPDATED' });
-    });
+    clients.forEach((client) =>
+      client.postMessage({ type: 'CACHE_UPDATED' })
+    );
   } catch (error) {
     console.error('Cache update failed:', error);
   }
 }
 
+// Fetch handling
 self.addEventListener('fetch', (event) => {
-  // Allow DuckDuckGo autocomplete requests to pass through
-  if (event.request.url.startsWith('https://duckduckgo.com/ac/')) {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip DuckDuckGo autocomplete
+  if (url.hostname === 'duckduckgo.com') {
     return;
   }
 
-  // Handle Navigation Requests (HTML) - Network First, then Cache
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // If we got a valid response, cache it and return it
-          if (response && response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          // If network fails (offline), return cached version
-          return caches.match(event.request).then((response) => {
-             return response || caches.match('/index.html');
-          });
-        })
-    );
+  // Skip non-GET requests
+  if (request.method !== 'GET') {
     return;
   }
 
-  // Handle other local resources (CSS, JS, Images) - Cache First, then Network
-  if (event.request.url.startsWith(self.location.origin)) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        // Return cached version immediately if available
-        if (cachedResponse) {
-          // Optional: Background update for next time (Stale-While-Revalidate)
-          // fetch(event.request).then(response => {
-          //   caches.open(CACHE_NAME).then(cache => cache.put(event.request, response));
-          // });
-          return cachedResponse;
-        }
-
-        return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-
-          return response;
-        });
-      })
-    );
+  // Navigation requests (HTML pages)
+  if (request.mode === 'navigate') {
+    event.respondWith(handleNavigation(request));
     return;
   }
 
-  // Default behavior for everything else
-  event.respondWith(fetch(event.request));
+  // Static assets from same origin
+  if (url.origin === self.location.origin) {
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
+    return;
+  }
+
+  // External assets (fonts, etc.)
+  if (EXTERNAL_ASSETS.some((asset) => request.url.includes(asset))) {
+    event.respondWith(cacheFirst(request, CACHE_NAME));
+    return;
+  }
 });
+
+// Navigation: Network First with fallback to cache
+async function handleNavigation(request) {
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse?.status === 200) {
+      const cache = await caches.open(STATIC_CACHE);
+      await cache.put(request, networkResponse.clone());
+      return networkResponse;
+    }
+    throw new Error('Network response not OK');
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+
+    // Final fallback
+    const fallback = await caches.match('/index.html');
+    return fallback || Response.error();
+  }
+}
+
+// Stale-While-Revalidate: Return cached version immediately, update in background
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+
+  const fetchPromise = fetch(request)
+    .then((response) => {
+      if (response?.status === 200) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => cached);
+
+  return cached || fetchPromise;
+}
+
+// Cache First: Return from cache, fetch from network if not cached
+async function cacheFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (response?.status === 200) {
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return cached || Response.error();
+  }
+}
