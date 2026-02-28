@@ -15,7 +15,7 @@ export const COMMANDS = new Map([
   ['A', { name: 'Mastodon', url: 'https://social.lol', workspace: 'personal' }],
   ['B', { name: 'Pastebin', url: 'https://paste.m1n.land/', workspace: 'personal' }],
   ['G', { name: 'Proton Mail', url: 'https://mail.proton.me', workspace: 'personal' }],
-  ['M', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'personal' }],
+  ['M', { name: 'Raindrop', url: 'https://app.raindrop.io/', workspace: 'personal' }],
   ['R', { name: 'RSS feed', url: 'https://owl.report/', workspace: 'personal' }],
   ['T', { name: 'Twitch', url: 'https://www.twitch.tv', workspace: 'personal' }],
   ['W', { name: 'Weather', url: 'https://merrysky.net/', workspace: 'personal' }],
@@ -28,6 +28,6 @@ export const COMMANDS = new Map([
   ['S', { name: 'Server', url: 'http://192.168.1.139', workspace: 'dev' }],
   ['V', { name: 'Vercel', url: 'https://vercel.com/dashboard', workspace: 'dev' }],
   // Work (alphabetical by key)
-  ['J', { name: 'Mymemo', url: 'https://app.mymemo.ai/home', workspace: 'work' }],
+  ['J', { name: 'Raindrop', url: 'https://app.raindrop.io/', workspace: 'work' }],
   ['O', { name: 'Outlook', url: 'https://outlook.office.com', workspace: 'work' }],
 ]);

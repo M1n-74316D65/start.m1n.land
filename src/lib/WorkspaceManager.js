@@ -35,8 +35,10 @@ export class WorkspaceManager {
 
   #generateWorkspaces() {
     const workspaceMap = new Map();
+
     for (const [key, command] of COMMANDS.entries()) {
       const workspaceId = command.workspace || 'default';
+      
       if (!workspaceMap.has(workspaceId)) {
         workspaceMap.set(workspaceId, {
           id: workspaceId,
@@ -44,8 +46,10 @@ export class WorkspaceManager {
           commands: [],
         });
       }
-      workspaceMap.get(workspaceId).commands.push(key);
+      
+      workspaceMap.get(workspaceId).commands.push({ key, command });
     }
+    
     const orderedWorkspaces = Array.from(workspaceMap.values());
     const order = ['personal', 'dev', 'work'];
     orderedWorkspaces.sort((a, b) => {
@@ -110,11 +114,8 @@ export class WorkspaceManager {
     if (!workspace || !workspace.commands) return new Map();
 
     const workspaceCommands = new Map();
-    workspace.commands.forEach((key) => {
-      const command = COMMANDS.get(key);
-      if (command) {
-        workspaceCommands.set(key, command);
-      }
+    workspace.commands.forEach(({ key, command }) => {
+      workspaceCommands.set(key, command);
     });
     return workspaceCommands;
   }
