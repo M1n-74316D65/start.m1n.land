@@ -6,7 +6,10 @@ function registerServiceWorker() {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/service-worker.js').then(
         (registration) => {
-          console.log('ServiceWorker registration successful:', registration.scope);
+          console.log(
+            'ServiceWorker registration successful:',
+            registration.scope
+          );
         },
         (error) => {
           console.log('ServiceWorker registration failed:', error);
@@ -17,6 +20,20 @@ function registerServiceWorker() {
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'CACHE_UPDATED') {
         console.log('PWA cache updated successfully');
+      }
+
+      if (event.data && event.data.type === 'SW_ACTIVATED') {
+        console.log('Service worker updated, refresh to apply');
+      }
+    });
+  }
+}
+
+function checkForSWUpdate() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then((registration) => {
+      if (registration?.waiting) {
+        console.log('New version available');
       }
     });
   }
@@ -34,12 +51,18 @@ function updatePWACache() {
 function updateThemeColor() {
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const color = isDark ? '#0c0d0d' : '#f3f4f4';
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', color);
 }
 
 function initKeyboardShortcuts() {
   document.addEventListener('keydown', (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'r') {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.shiftKey &&
+      event.key === 'r'
+    ) {
       event.preventDefault();
       updatePWACache();
     }
@@ -56,7 +79,9 @@ function initKeyboardShortcuts() {
 }
 
 function initThemeListener() {
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateThemeColor);
+  window
+    .matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener('change', updateThemeColor);
   updateThemeColor();
 }
 
@@ -82,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
   import('./components/NewsFeed.js');
 
   registerServiceWorker();
+  checkForSWUpdate();
   initKeyboardShortcuts();
   initThemeListener();
   initPWAInstall();
