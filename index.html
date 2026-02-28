@@ -15,7 +15,10 @@
 />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta
+  name="apple-mobile-web-app-status-bar-style"
+  content="black-translucent"
+/>
 <meta name="apple-mobile-web-app-title" content="M1n Startpage" />
 <meta name="application-name" content="M1n Startpage" />
 <link rel="manifest" href="/manifest.json" />
@@ -25,7 +28,10 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link
+  href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+/>
 
 <style>
   html {
@@ -74,7 +80,8 @@
     opacity: 0;
     animation: fadeIn 0.5s var(--transition-easing) forwards;
     scrollbar-width: none;
-    transition: background-color var(--transition-speed) var(--transition-easing);
+    transition: background-color var(--transition-speed)
+      var(--transition-easing);
   }
 
   main::-webkit-scrollbar {
@@ -102,6 +109,13 @@
 
   @keyframes fadeIn {
     to {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    main {
+      animation: none;
       opacity: 1;
     }
   }

@@ -14,7 +14,8 @@
   --color-accent-glow: rgba(124, 186, 95, 0.12);
   --color-accent-subtle: rgba(124, 186, 95, 0.08);
   --color-scanline: rgba(255, 255, 255, 0.018);
-  --font-family: 'IBM Plex Mono', 'SFMono-Regular', Menlo, Monaco, Consolas,
+  --font-family:
+    'IBM Plex Mono', 'SFMono-Regular', Menlo, Monaco, Consolas,
     'Liberation Mono', monospace;
   --font-size: clamp(14px, 1.2vw, 16px);
   --font-weight-bold: 500;
@@ -48,7 +49,7 @@
     --color-accent-dim: #487a2e;
     --color-accent-glow: rgba(91, 148, 59, 0.1);
     --color-accent-subtle: rgba(91, 148, 59, 0.06);
-    --color-scanline: rgba(0, 0, 0, 0.025);
+    --color-scanline: rgba(0, 0, 0, 0.06);
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);

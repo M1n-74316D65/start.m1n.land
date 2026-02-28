@@ -47,6 +47,18 @@ searchTemplate.innerHTML = `
       }
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      .dialog[open] {
+        animation: none;
+        opacity: 1;
+      }
+      .suggestion {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+    }
+
     .form {
       width: 100%;
       max-width: 28rem;
@@ -174,6 +186,7 @@ searchTemplate.innerHTML = `
       <div class="input-wrapper">
         <input
           class="input"
+          aria-label="Search"
           title="search"
           type="text"
           placeholder="Type to search..."
@@ -296,7 +309,9 @@ export class Search extends HTMLElement {
   }
 
   #parseQuery(raw) {
-    const workspaceCommands = workspaceManager.getCommandsForWorkspace(this.#activeWorkspaceId);
+    const workspaceCommands = workspaceManager.getCommandsForWorkspace(
+      this.#activeWorkspaceId
+    );
     const query = raw.trim();
     const compareQuery = Search.#compareKey(query);
 
@@ -313,7 +328,10 @@ export class Search extends HTMLElement {
     const [commandPart, searchPart] = query.split(
       new RegExp(`${CONFIG.commandSearchDelimiter}(.*)`)
     );
-    const commandPartResult = Search.#getCommandWithKey(commandPart, workspaceCommands);
+    const commandPartResult = Search.#getCommandWithKey(
+      commandPart,
+      workspaceCommands
+    );
     if (commandPartResult) {
       const search = searchPart ? searchPart.trim() : '';
       const template = new URL(
@@ -340,7 +358,7 @@ export class Search extends HTMLElement {
   #close() {
     this.#input.value = '';
     this.#input.blur();
-    
+
     setTimeout(() => {
       this.#dialog.close();
       this.#suggestions.replaceChildren();
@@ -374,7 +392,9 @@ export class Search extends HTMLElement {
   }
 
   async #onInput() {
-    const workspaceCommands = workspaceManager.getCommandsForWorkspace(this.#activeWorkspaceId);
+    const workspaceCommands = workspaceManager.getCommandsForWorkspace(
+      this.#activeWorkspaceId
+    );
     const parsedQuery = this.#parseQuery(this.#input.value);
 
     if (!parsedQuery.query) {
@@ -382,7 +402,10 @@ export class Search extends HTMLElement {
       return;
     }
 
-    const result = Search.#getCommandWithKey(parsedQuery.key || parsedQuery.query, workspaceCommands);
+    const result = Search.#getCommandWithKey(
+      parsedQuery.key || parsedQuery.query,
+      workspaceCommands
+    );
     let suggestions = result?.command?.suggestions ?? [];
 
     if (parsedQuery.search && suggestions.length < CONFIG.suggestionLimit) {
@@ -492,10 +515,7 @@ export class Search extends HTMLElement {
 
         if (matchIndex !== -1) {
           const pre = suggestion.slice(0, matchIndex);
-          const match = suggestion.slice(
-            matchIndex,
-            matchIndex + query.length
-          );
+          const match = suggestion.slice(matchIndex, matchIndex + query.length);
           const post = suggestion.slice(matchIndex + query.length);
 
           const matchClone = matchTemplate.content.cloneNode(true);
