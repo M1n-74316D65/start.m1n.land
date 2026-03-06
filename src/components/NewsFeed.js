@@ -1,5 +1,7 @@
 import { HackerNewsAPI } from '../lib/HackerNewsAPI.js';
 
+const STORY_TYPES = ['top', 'new', 'best', 'ask', 'show'];
+
 const newsTemplate = document.createElement('template');
 newsTemplate.innerHTML = `
   <style>
@@ -7,6 +9,11 @@ newsTemplate.innerHTML = `
       margin-top: 0;
       max-width: 48rem;
       width: 100%;
+      outline: none;
+    }
+
+    .news-container:focus {
+      outline: none;
     }
 
     .news-header {
@@ -15,6 +22,14 @@ newsTemplate.innerHTML = `
       justify-content: space-between;
       margin-bottom: calc(var(--space) * 0.6);
       padding: 0 calc(var(--space) * 0.3);
+      flex-wrap: wrap;
+      gap: calc(var(--space) * 0.5);
+    }
+
+    .news-title-section {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--space) * 0.75);
     }
 
     .news-title {
@@ -39,6 +54,48 @@ newsTemplate.innerHTML = `
       height: 12px;
       fill: currentColor;
       opacity: 0.7;
+    }
+
+    .story-type-tabs {
+      display: flex;
+      align-items: center;
+      gap: 0.15rem;
+    }
+
+    .story-type-tab {
+      background: transparent;
+      border: none;
+      color: var(--color-text-muted);
+      font-family: inherit;
+      font-size: 0.65rem;
+      font-weight: var(--font-weight-normal);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: all var(--transition-speed) var(--transition-easing);
+      position: relative;
+    }
+
+    .story-type-tab:hover {
+      color: var(--color-text);
+      background: var(--color-focus);
+    }
+
+    .story-type-tab.active {
+      color: var(--color-accent);
+      background: var(--color-accent-subtle);
+    }
+
+    .story-type-tab:focus {
+      outline: none;
+      box-shadow: 0 0 0 1px var(--color-accent);
+    }
+
+    .story-type-tab .tab-key {
+      opacity: 0.5;
+      margin-left: 0.15rem;
     }
 
     .header-actions {
@@ -114,6 +171,35 @@ newsTemplate.innerHTML = `
       overflow: hidden;
     }
 
+    .news-item-wrapper {
+      border-bottom: 1px solid var(--color-border);
+      opacity: 0;
+      transform: translateY(8px);
+      animation: itemIn 0.3s var(--transition-easing) forwards;
+    }
+
+    .news-item-wrapper:nth-child(1) { animation-delay: 0.02s; }
+    .news-item-wrapper:nth-child(2) { animation-delay: 0.04s; }
+    .news-item-wrapper:nth-child(3) { animation-delay: 0.06s; }
+    .news-item-wrapper:nth-child(4) { animation-delay: 0.08s; }
+    .news-item-wrapper:nth-child(5) { animation-delay: 0.10s; }
+    .news-item-wrapper:nth-child(6) { animation-delay: 0.12s; }
+    .news-item-wrapper:nth-child(7) { animation-delay: 0.14s; }
+    .news-item-wrapper:nth-child(8) { animation-delay: 0.16s; }
+    .news-item-wrapper:nth-child(9) { animation-delay: 0.18s; }
+    .news-item-wrapper:nth-child(10) { animation-delay: 0.20s; }
+
+    @keyframes itemIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .news-item-wrapper:last-child {
+      border-bottom: none;
+    }
+
     .news-item {
       display: grid;
       grid-template-columns: 2.5rem 1fr auto;
@@ -124,55 +210,21 @@ newsTemplate.innerHTML = `
       transition: 
         all var(--transition-speed) var(--transition-easing),
         background var(--transition-speed) var(--transition-easing);
-      text-decoration: none;
       color: inherit;
       outline: 0;
-      border-bottom: 1px solid var(--color-border);
-      opacity: 0;
-      transform: translateY(8px);
-      animation: itemIn 0.3s var(--transition-easing) forwards;
-    }
-
-    .news-item:nth-child(1) { animation-delay: 0.02s; }
-    .news-item:nth-child(2) { animation-delay: 0.04s; }
-    .news-item:nth-child(3) { animation-delay: 0.06s; }
-    .news-item:nth-child(4) { animation-delay: 0.08s; }
-    .news-item:nth-child(5) { animation-delay: 0.10s; }
-    .news-item:nth-child(6) { animation-delay: 0.12s; }
-    .news-item:nth-child(7) { animation-delay: 0.14s; }
-    .news-item:nth-child(8) { animation-delay: 0.16s; }
-    .news-item:nth-child(9) { animation-delay: 0.18s; }
-    .news-item:nth-child(10) { animation-delay: 0.20s; }
-
-    @keyframes itemIn {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
     }
 
     .news-item:hover {
       color: var(--color-text);
       background: var(--color-focus);
-      border-color: var(--color-text-muted);
     }
 
-    .news-item:focus {
-      outline: none;
+    .news-item.keyboard-focus {
       background: var(--color-accent-subtle);
-      border-color: var(--color-accent);
     }
 
-    .news-item:focus .news-item-title {
+    .news-item.keyboard-focus .news-item-title-link {
       color: var(--color-text);
-    }
-
-    .news-item:active {
-      transform: scale(0.99);
-    }
-
-    .news-item:last-child {
-      border-bottom: none;
     }
 
     .news-item-rank {
@@ -184,11 +236,83 @@ newsTemplate.innerHTML = `
       opacity: 0.5;
     }
 
+    .news-item-wrapper.hot .news-item-rank {
+      color: var(--color-accent);
+      opacity: 0.8;
+    }
+
+    .news-item-wrapper.hot .score-badge {
+      color: var(--color-accent);
+    }
+
+    .hot-indicator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 6px;
+      height: 6px;
+      background: var(--color-accent);
+      border-radius: 50%;
+      margin-left: 0.4rem;
+      box-shadow: 0 0 6px var(--color-accent-glow);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+
+    .keyboard-hint {
+      position: fixed;
+      bottom: calc(var(--space) * 1);
+      right: calc(var(--space) * 1);
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: calc(var(--space) * 0.5) calc(var(--space) * 0.75);
+      color: var(--color-text-subtle);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all var(--transition-speed) var(--transition-easing);
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .keyboard-hint.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .keyboard-hint kbd {
+      background: var(--color-focus);
+      border: 1px solid var(--color-border);
+      border-radius: 3px;
+      padding: 0.1rem 0.35rem;
+      font-family: inherit;
+      font-size: 0.6rem;
+      color: var(--color-text);
+      margin: 0 0.1rem;
+    }
+
     .news-item-content {
       display: flex;
       flex-direction: column;
       gap: 0.2rem;
       min-width: 0;
+    }
+
+    .news-item-title-link {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .news-item-title-link:hover .news-item-title {
+      color: var(--color-accent);
     }
 
     .news-item-title {
@@ -266,12 +390,28 @@ newsTemplate.innerHTML = `
       color: var(--color-text-subtle);
       font-size: 0.65rem;
       opacity: 0.7;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color var(--transition-speed) var(--transition-easing);
+    }
+
+    .comments-link:hover {
+      color: var(--color-accent);
+      opacity: 1;
     }
 
     .comments-link svg {
       width: 9px;
       height: 9px;
       fill: currentColor;
+    }
+
+    .news-item {
+      user-select: none;
+    }
+
+    .news-item-title-link {
+      user-select: text;
     }
 
     .loading {
@@ -412,19 +552,38 @@ newsTemplate.innerHTML = `
       }
     }
   </style>
-  <div class="news-container">
+  <div class="news-container" tabindex="-1">
     <div class="news-header">
-      <a
-        href="https://news.ycombinator.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="news-title"
-      >
-        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0v16h16V0H0zm8.8 9.6V14H7.2V9.6L3.6 2h1.8l3.6 6 3.6-6h1.8L8.8 9.6z" />
-        </svg>
-        Hacker News
-      </a>
+      <div class="news-title-section">
+        <a
+          href="https://news.ycombinator.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="news-title"
+        >
+          <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 0v16h16V0H0zm8.8 9.6V14H7.2V9.6L3.6 2h1.8l3.6 6 3.6-6h1.8L8.8 9.6z" />
+          </svg>
+          Hacker News
+        </a>
+        <div class="story-type-tabs">
+          <button class="story-type-tab active" data-type="top" data-key="1">
+            Top<span class="tab-key">1</span>
+          </button>
+          <button class="story-type-tab" data-type="new" data-key="2">
+            New<span class="tab-key">2</span>
+          </button>
+          <button class="story-type-tab" data-type="best" data-key="3">
+            Best<span class="tab-key">3</span>
+          </button>
+          <button class="story-type-tab" data-type="ask" data-key="4">
+            Ask<span class="tab-key">4</span>
+          </button>
+          <button class="story-type-tab" data-type="show" data-key="5">
+            Show<span class="tab-key">5</span>
+          </button>
+        </div>
+      </div>
       <div class="header-actions">
         <span class="cache-time"></span>
         <button class="refresh-btn" type="button" title="Refresh stories">
@@ -439,25 +598,30 @@ newsTemplate.innerHTML = `
       <div class="loading-spinner"></div>
       <span class="loading-text">Loading stories...</span>
     </div>
+    <div class="keyboard-hint">
+      <kbd>↑</kbd><kbd>↓</kbd> navigate <kbd>↵</kbd> open <kbd>c</kbd> comments <kbd>1-5</kbd> switch
+    </div>
   </div>
 `;
 
 const newsItemTemplate = document.createElement('template');
 newsItemTemplate.innerHTML = `
-  <li>
-    <a class="news-item" target="_blank" rel="noopener noreferrer">
+  <li class="news-item-wrapper">
+    <div class="news-item" tabindex="-1">
       <span class="news-item-rank"></span>
       <div class="news-item-content">
-        <h3 class="news-item-title"></h3>
+        <a class="news-item-title-link" target="_blank" rel="noopener noreferrer">
+          <h3 class="news-item-title"></h3>
+        </a>
         <div class="news-item-meta">
           <span class="news-item-domain"></span>
           <span class="meta-separator">·</span>
-          <span class="comments-link">
+          <a class="comments-link" target="_blank" rel="noopener noreferrer">
             <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
               <path d="M14 1H2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3l3 3 3-3h3a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2z" />
             </svg>
             <span class="comments-count"></span>
-          </span>
+          </a>
         </div>
       </div>
       <div class="news-item-stats">
@@ -469,7 +633,7 @@ newsItemTemplate.innerHTML = `
         </div>
         <span class="time-badge"></span>
       </div>
-    </a>
+    </div>
   </li>
 `;
 
@@ -479,9 +643,14 @@ export class NewsFeed extends HTMLElement {
   #loading;
   #refreshBtn;
   #cacheTime;
+  #tabs;
+  #keyboardHint;
   #stories = [];
-  #CACHE_KEY = 'hacker-news-stories';
+  #currentType = 'top';
+  #focusedIndex = -1;
+  #CACHE_KEY_PREFIX = 'hacker-news-';
   #CACHE_DURATION = 30 * 60 * 1000;
+  #keyboardListeners = [];
 
   constructor() {
     super();
@@ -492,19 +661,174 @@ export class NewsFeed extends HTMLElement {
     this.#loading = this.shadowRoot.querySelector('.loading');
     this.#refreshBtn = this.shadowRoot.querySelector('.refresh-btn');
     this.#cacheTime = this.shadowRoot.querySelector('.cache-time');
+    this.#tabs = this.shadowRoot.querySelectorAll('.story-type-tab');
+    this.#keyboardHint = this.shadowRoot.querySelector('.keyboard-hint');
     this.#initializeEventListeners();
     this.#loadStories();
+  }
+
+  connectedCallback() {
+    this.#setupGlobalKeyboardListeners();
+  }
+
+  disconnectedCallback() {
+    this.#cleanupKeyboardListeners();
+  }
+
+  #setupGlobalKeyboardListeners() {
+    const handleKeyDown = (e) => {
+      if (!this.isConnected) return;
+
+      const activeElement = this.shadowRoot.activeElement;
+      const isFocused = this.shadowRoot.querySelector(
+        '.news-item.keyboard-focus'
+      );
+
+      if (e.key >= '1' && e.key <= '5') {
+        const typeIndex = parseInt(e.key) - 1;
+        if (typeIndex < STORY_TYPES.length) {
+          e.preventDefault();
+          this.#switchStoryType(STORY_TYPES[typeIndex]);
+        }
+      } else if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J') {
+        e.preventDefault();
+        this.#navigateStory(1);
+        this.#showKeyboardHint();
+      } else if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K') {
+        e.preventDefault();
+        this.#navigateStory(-1);
+        this.#showKeyboardHint();
+      } else if (e.key === 'Enter' && this.#focusedIndex >= 0) {
+        e.preventDefault();
+        this.#openCurrentStory();
+      } else if ((e.key === 'c' || e.key === 'C') && this.#focusedIndex >= 0) {
+        e.preventDefault();
+        this.#openCurrentComments();
+      } else if (e.key === 'Escape') {
+        this.#clearFocus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    this.#keyboardListeners.push(() =>
+      document.removeEventListener('keydown', handleKeyDown)
+    );
+  }
+
+  #cleanupKeyboardListeners() {
+    this.#keyboardListeners.forEach((remove) => remove());
+    this.#keyboardListeners = [];
+  }
+
+  #navigateStory(direction) {
+    const wrappers = this.shadowRoot.querySelectorAll('.news-item-wrapper');
+    if (wrappers.length === 0) return;
+
+    this.#focusedIndex += direction;
+    if (this.#focusedIndex < 0) this.#focusedIndex = wrappers.length - 1;
+    if (this.#focusedIndex >= wrappers.length) this.#focusedIndex = 0;
+
+    wrappers.forEach((wrapper, index) => {
+      const item = wrapper.querySelector('.news-item');
+      if (item) {
+        item.classList.toggle('keyboard-focus', index === this.#focusedIndex);
+      }
+    });
+
+    const focusedWrapper = wrappers[this.#focusedIndex];
+    if (focusedWrapper) {
+      const item = focusedWrapper.querySelector('.news-item');
+      if (item) {
+        item.focus();
+        item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
+  #clearFocus() {
+    this.#focusedIndex = -1;
+    const wrappers = this.shadowRoot.querySelectorAll('.news-item-wrapper');
+    wrappers.forEach((wrapper) => {
+      const item = wrapper.querySelector('.news-item');
+      if (item) item.classList.remove('keyboard-focus');
+    });
+    this.#container.focus();
+  }
+
+  #openCurrentStory() {
+    const wrappers = this.shadowRoot.querySelectorAll('.news-item-wrapper');
+    if (this.#focusedIndex >= 0 && this.#focusedIndex < wrappers.length) {
+      const titleLink = wrappers[this.#focusedIndex].querySelector(
+        '.news-item-title-link'
+      );
+      if (titleLink && titleLink.href) window.open(titleLink.href, '_blank');
+    }
+  }
+
+  #openCurrentComments() {
+    const wrappers = this.shadowRoot.querySelectorAll('.news-item-wrapper');
+    if (this.#focusedIndex >= 0 && this.#focusedIndex < wrappers.length) {
+      const commentsLink =
+        wrappers[this.#focusedIndex].querySelector('.comments-link');
+      if (commentsLink && commentsLink.href) {
+        window.open(commentsLink.href, '_blank');
+      }
+    }
+  }
+
+  #switchStoryType(type) {
+    if (type === this.#currentType) return;
+    this.#currentType = type;
+    this.#focusedIndex = -1;
+
+    this.#tabs.forEach((tab) => {
+      tab.classList.toggle('active', tab.dataset.type === type);
+    });
+
+    this.#loadStories();
+  }
+
+  #showKeyboardHint() {
+    this.#keyboardHint.classList.add('visible');
+    clearTimeout(this._hideHintTimeout);
+    this._hideHintTimeout = setTimeout(() => {
+      this.#keyboardHint.classList.remove('visible');
+    }, 3000);
+  }
+
+  #isHotStory(story) {
+    const ageHours = (Date.now() / 1000 - story.time) / 3600;
+    const scorePerHour = story.score / Math.max(ageHours, 0.5);
+    return scorePerHour > 30 && story.score > 50;
+  }
+
+  #getCacheKey() {
+    return `${this.#CACHE_KEY_PREFIX}${this.#currentType}`;
   }
 
   #initializeEventListeners() {
     this.#refreshBtn.addEventListener('click', () => {
       this.#loadStories(true);
     });
+
+    this.#tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        this.#switchStoryType(tab.dataset.type);
+      });
+    });
+
+    this.#container.addEventListener(
+      'mouseenter',
+      () => {
+        this.#showKeyboardHint();
+      },
+      { once: true }
+    );
   }
 
   #isCacheValid() {
     try {
-      const cached = localStorage.getItem(this.#CACHE_KEY);
+      const cached = localStorage.getItem(this.#getCacheKey());
       if (!cached) return false;
 
       const { timestamp } = JSON.parse(cached);
@@ -516,7 +840,7 @@ export class NewsFeed extends HTMLElement {
 
   #getCachedStories() {
     try {
-      const cached = localStorage.getItem(this.#CACHE_KEY);
+      const cached = localStorage.getItem(this.#getCacheKey());
       return JSON.parse(cached);
     } catch {
       return null;
@@ -525,7 +849,7 @@ export class NewsFeed extends HTMLElement {
 
   #updateCacheTimeDisplay() {
     try {
-      const cached = localStorage.getItem(this.#CACHE_KEY);
+      const cached = localStorage.getItem(this.#getCacheKey());
       if (cached) {
         const { timestamp } = JSON.parse(cached);
         const minutes = Math.floor((Date.now() - timestamp) / 60000);
@@ -547,8 +871,9 @@ export class NewsFeed extends HTMLElement {
       const cacheData = {
         stories,
         timestamp: Date.now(),
+        type: this.#currentType,
       };
-      localStorage.setItem(this.#CACHE_KEY, JSON.stringify(cacheData));
+      localStorage.setItem(this.#getCacheKey(), JSON.stringify(cacheData));
     } catch (error) {
       console.warn('Failed to cache stories:', error);
     }
@@ -558,6 +883,7 @@ export class NewsFeed extends HTMLElement {
     this.#refreshBtn.disabled = true;
     this.#loading.style.display = 'flex';
     this.#newsList.style.display = 'none';
+    this.#focusedIndex = -1;
 
     try {
       if (!forceRefresh && this.#isCacheValid()) {
@@ -573,7 +899,7 @@ export class NewsFeed extends HTMLElement {
         }
       }
 
-      this.#stories = await HackerNewsAPI.fetchTopStories(10);
+      this.#stories = await HackerNewsAPI.fetchStories(this.#currentType, 10);
       this.#setCachedStories(this.#stories);
       this.#renderStories();
       this.#updateCacheTimeDisplay();
@@ -586,7 +912,8 @@ export class NewsFeed extends HTMLElement {
       if (cached && cached.stories && cached.stories.length > 0) {
         this.#stories = cached.stories;
         this.#renderStories();
-        this.#loading.innerHTML = '<span class="error">Showing cached stories (offline)</span>';
+        this.#loading.innerHTML =
+          '<span class="error">Showing cached stories (offline)</span>';
       } else {
         this.#loading.innerHTML = `
           <span class="error">
@@ -611,7 +938,9 @@ export class NewsFeed extends HTMLElement {
 
     this.#stories.forEach((story, index) => {
       const clone = newsItemTemplate.content.cloneNode(true);
+      const wrapper = clone.querySelector('.news-item-wrapper');
       const newsItem = clone.querySelector('.news-item');
+      const titleLink = clone.querySelector('.news-item-title-link');
       const rank = clone.querySelector('.news-item-rank');
       const title = clone.querySelector('.news-item-title');
       const domain = clone.querySelector('.news-item-domain');
@@ -619,10 +948,20 @@ export class NewsFeed extends HTMLElement {
       const time = clone.querySelector('.time-badge');
       const commentsCount = clone.querySelector('.comments-count');
 
-      newsItem.href =
+      const storyUrl =
         story.url || `https://news.ycombinator.com/item?id=${story.id}`;
+      titleLink.href = storyUrl;
+      newsItem.dataset.index = index;
       rank.textContent = `${index + 1}`;
       title.textContent = story.title;
+
+      if (this.#isHotStory(story)) {
+        wrapper.classList.add('hot');
+        const hotIndicator = document.createElement('span');
+        hotIndicator.className = 'hot-indicator';
+        hotIndicator.title = 'Hot story';
+        title.appendChild(hotIndicator);
+      }
 
       if (story.url) {
         try {
@@ -637,7 +976,14 @@ export class NewsFeed extends HTMLElement {
 
       score.textContent = HackerNewsAPI.formatScore(story.score || 0);
       time.textContent = HackerNewsAPI.formatTime(story.time || 0);
-      commentsCount.textContent = story.descendants || 0;
+      commentsCount.textContent = `${story.descendants || 0}`;
+
+      const commentsLink = clone.querySelector('.comments-link');
+      if (commentsLink) {
+        commentsLink.href = `https://news.ycombinator.com/item?id=${story.id}`;
+        commentsLink.target = '_blank';
+        commentsLink.rel = 'noopener noreferrer';
+      }
 
       fragment.appendChild(clone);
     });
