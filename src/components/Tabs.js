@@ -133,6 +133,8 @@ tabTemplate.innerHTML = `
 export class Tabs extends HTMLElement {
   #tabsContainer;
   #indicator;
+  #boundWorkspaceChange;
+  #boundResize;
 
   constructor() {
     super();
@@ -144,7 +146,7 @@ export class Tabs extends HTMLElement {
     this.#tabsContainer.appendChild(this.#indicator);
     this.#renderTabs();
     this.#initializeEventListeners();
-    
+
     requestAnimationFrame(() => this.#updateIndicator());
   }
 
@@ -182,7 +184,9 @@ export class Tabs extends HTMLElement {
       const tab = e.target.closest('.tab');
       if (!tab) return;
 
-      const index = Array.from(this.#tabsContainer.querySelectorAll('.tab')).indexOf(tab);
+      const index = Array.from(
+        this.#tabsContainer.querySelectorAll('.tab')
+      ).indexOf(tab);
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         const tabs = this.#tabsContainer.querySelectorAll('.tab');
@@ -196,9 +200,24 @@ export class Tabs extends HTMLElement {
       }
     });
 
-    window.addEventListener('workspacechange', (e) => {
+    this.#boundWorkspaceChange = (e) => {
       this.#updateActiveTab(e.detail.workspaceId);
-    });
+    };
+    window.addEventListener('workspacechange', this.#boundWorkspaceChange);
+
+    this.#boundResize = () => {
+      this.#updateIndicator();
+    };
+    window.addEventListener('resize', this.#boundResize);
+  }
+
+  disconnectedCallback() {
+    if (this.#boundWorkspaceChange) {
+      window.removeEventListener('workspacechange', this.#boundWorkspaceChange);
+    }
+    if (this.#boundResize) {
+      window.removeEventListener('resize', this.#boundResize);
+    }
   }
 
   #updateActiveTab(workspaceId) {
@@ -206,7 +225,7 @@ export class Tabs extends HTMLElement {
       const isActive = tab.dataset.workspaceId === workspaceId;
       tab.classList.toggle('active', isActive);
     });
-    
+
     requestAnimationFrame(() => this.#updateIndicator());
   }
 

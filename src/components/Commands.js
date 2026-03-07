@@ -144,6 +144,7 @@ export class Commands extends HTMLElement {
   #dynamicStyle;
   #sortedCommandsCache = null;
   #cachedWorkspaceId = null;
+  #boundWorkspaceChange;
 
   constructor() {
     super();
@@ -158,17 +159,17 @@ export class Commands extends HTMLElement {
 
   #calculateOptimalColumns(count, maxCols) {
     if (count <= 1) return 1;
-    
+
     const minCols = 2;
     const effectiveMax = Math.min(maxCols, count);
-    
+
     let bestCols = minCols;
     let minEmpty = Infinity;
 
     for (let c = minCols; c <= effectiveMax; c++) {
       const rows = Math.ceil(count / c);
-      const empty = (rows * c) - count;
-      
+      const empty = rows * c - count;
+
       if (empty < minEmpty) {
         minEmpty = empty;
         bestCols = c;
@@ -176,7 +177,7 @@ export class Commands extends HTMLElement {
         bestCols = c;
       }
     }
-    
+
     return bestCols;
   }
 
@@ -199,7 +200,7 @@ export class Commands extends HTMLElement {
     const colsMobile = this.#calculateOptimalColumns(count, 3);
     const colsTablet = this.#calculateOptimalColumns(count, 4);
     const colsDesktop = this.#calculateOptimalColumns(count, 6);
-    
+
     this.#dynamicStyle.textContent = `
       @media (max-width: 599px) {
         ${this.#generateGridCSS(colsMobile)}
@@ -214,18 +215,25 @@ export class Commands extends HTMLElement {
   }
 
   #initializeEventListeners() {
-    window.addEventListener('workspacechange', (e) => {
+    this.#boundWorkspaceChange = (e) => {
       this.#activeWorkspaceId = e.detail.workspaceId;
       this.#sortedCommandsCache = null;
       this.rerender();
-    });
+    };
+    window.addEventListener('workspacechange', this.#boundWorkspaceChange);
+  }
+
+  disconnectedCallback() {
+    if (this.#boundWorkspaceChange) {
+      window.removeEventListener('workspacechange', this.#boundWorkspaceChange);
+    }
   }
 
   render() {
     const commandsContainer = this.shadowRoot.querySelector('.commands');
     const fragment = this.createCommandsFragment();
     const count = fragment.children.length;
-    
+
     if (count === 0) {
       commandsContainer.style.display = 'none';
       return;
@@ -253,27 +261,32 @@ export class Commands extends HTMLElement {
   }
 
   #getSortedCommands(workspaceCommands) {
-    if (this.#sortedCommandsCache && this.#cachedWorkspaceId === this.#activeWorkspaceId) {
+    if (
+      this.#sortedCommandsCache &&
+      this.#cachedWorkspaceId === this.#activeWorkspaceId
+    ) {
       return this.#sortedCommandsCache;
     }
-    
+
     const sorted = Array.from(workspaceCommands.entries()).sort((a, b) => {
       const usageA = UsageTracker.getUsageCount(a[0]);
       const usageB = UsageTracker.getUsageCount(b[0]);
       return usageB - usageA;
     });
-    
+
     this.#sortedCommandsCache = sorted;
     this.#cachedWorkspaceId = this.#activeWorkspaceId;
-    
+
     return sorted;
   }
 
   createCommandsFragment() {
     const fragment = document.createDocumentFragment();
-    const workspaceCommands = workspaceManager.getCommandsForWorkspace(this.#activeWorkspaceId);
+    const workspaceCommands = workspaceManager.getCommandsForWorkspace(
+      this.#activeWorkspaceId
+    );
     const sortedCommands = this.#getSortedCommands(workspaceCommands);
-    
+
     for (const [key, { name, url }] of sortedCommands) {
       if (!name || !url) continue;
       const commandClone = this.createCommandElement(key, name, url);

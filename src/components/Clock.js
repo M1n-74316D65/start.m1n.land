@@ -96,6 +96,7 @@ export class Clock extends HTMLElement {
   #lastMinutes = -1;
   #lastDate = '';
   #workspaceHint;
+  #boundWorkspaceChange;
 
   constructor() {
     super();
@@ -108,10 +109,15 @@ export class Clock extends HTMLElement {
     this.#updateWorkspaceHint();
     this.#updateClock();
     this.#interval = setInterval(() => this.#updateClock(), 1000);
+    this.#boundWorkspaceChange = this.#updateWorkspaceHint.bind(this);
+    window.addEventListener('workspacechange', this.#boundWorkspaceChange);
   }
 
   disconnectedCallback() {
     if (this.#interval) clearInterval(this.#interval);
+    if (this.#boundWorkspaceChange) {
+      window.removeEventListener('workspacechange', this.#boundWorkspaceChange);
+    }
   }
 
   #updateWorkspaceHint() {

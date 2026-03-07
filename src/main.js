@@ -100,11 +100,21 @@ function initPWAInstall() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  import('./components/Clock.js');
-  import('./components/Tabs.js');
-  import('./components/Commands.js');
-  import('./components/Search.js');
-  import('./components/NewsFeed.js');
+  const components = [
+    import('./components/Clock.js'),
+    import('./components/Tabs.js'),
+    import('./components/Commands.js'),
+    import('./components/Search.js'),
+    import('./components/NewsFeed.js'),
+  ];
+
+  Promise.allSettled(components).then((results) => {
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`Failed to load component ${index}:`, result.reason);
+      }
+    });
+  });
 
   registerServiceWorker();
   checkForSWUpdate();

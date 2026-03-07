@@ -94,6 +94,14 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   if (url.hostname === 'duckduckgo.com') {
+    event.respondWith(
+      fetch(request).catch(
+        () =>
+          new Response(JSON.stringify([]), {
+            headers: { 'Content-Type': 'application/json' },
+          })
+      )
+    );
     return;
   }
 

@@ -38,7 +38,7 @@ export class WorkspaceManager {
 
     for (const [key, command] of COMMANDS.entries()) {
       const workspaceId = command.workspace || 'default';
-      
+
       if (!workspaceMap.has(workspaceId)) {
         workspaceMap.set(workspaceId, {
           id: workspaceId,
@@ -46,10 +46,10 @@ export class WorkspaceManager {
           commands: [],
         });
       }
-      
+
       workspaceMap.get(workspaceId).commands.push({ key, command });
     }
-    
+
     const orderedWorkspaces = Array.from(workspaceMap.values());
     const order = ['personal', 'dev', 'work'];
     orderedWorkspaces.sort((a, b) => {
@@ -57,7 +57,7 @@ export class WorkspaceManager {
       const indexB = order.indexOf(b.id);
       if (indexA !== -1 && indexB !== -1) return indexA - indexB;
       if (indexA !== -1) return -1;
-      if (indexB !== 1) return 1;
+      if (indexB !== -1) return 1;
       return a.id.localeCompare(b.id);
     });
     return orderedWorkspaces;

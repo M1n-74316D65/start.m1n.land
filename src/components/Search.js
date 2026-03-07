@@ -229,22 +229,31 @@ export class Search extends HTMLElement {
 
   disconnectedCallback() {
     clearTimeout(this.#debounceTimeout);
+    this.#removeEventListeners();
   }
 
+  #boundSubmit = this.#onSubmit.bind(this);
+  #boundInput = Search.#debounce(this.#onInput.bind(this), 300);
+  #boundSuggestionClick = this.#onSuggestionClick.bind(this);
+  #boundKeydown = this.#onKeydown.bind(this);
+  #boundWorkspaceChange = (e) => {
+    this.#activeWorkspaceId = e.detail.workspaceId;
+  };
+
   #initializeEventListeners() {
-    this.#form.addEventListener('submit', this.#onSubmit.bind(this), false);
-    this.#input.addEventListener(
-      'input',
-      Search.#debounce(this.#onInput.bind(this), 300)
-    );
-    this.#suggestions.addEventListener(
-      'click',
-      this.#onSuggestionClick.bind(this)
-    );
-    document.addEventListener('keydown', this.#onKeydown.bind(this));
-    window.addEventListener('workspacechange', (e) => {
-      this.#activeWorkspaceId = e.detail.workspaceId;
-    });
+    this.#form.addEventListener('submit', this.#boundSubmit, false);
+    this.#input.addEventListener('input', this.#boundInput);
+    this.#suggestions.addEventListener('click', this.#boundSuggestionClick);
+    document.addEventListener('keydown', this.#boundKeydown);
+    window.addEventListener('workspacechange', this.#boundWorkspaceChange);
+  }
+
+  #removeEventListeners() {
+    this.#form.removeEventListener('submit', this.#boundSubmit);
+    this.#input.removeEventListener('input', this.#boundInput);
+    this.#suggestions.removeEventListener('click', this.#boundSuggestionClick);
+    document.removeEventListener('keydown', this.#boundKeydown);
+    window.removeEventListener('workspacechange', this.#boundWorkspaceChange);
   }
 
   static #debounce(fn, delay) {
@@ -256,25 +265,35 @@ export class Search extends HTMLElement {
   }
 
   static async #fetchDuckDuckGoSuggestions(search) {
-    return new Promise((resolve) => {
-      const callbackName = `ac_${Date.now()}`;
-      window[callbackName] = (res) => {
-        const suggestions = res
-          .filter((item) => item.phrase !== search.toLowerCase())
-          .map((item) => item.phrase);
-        delete window[callbackName];
-        resolve(suggestions);
-      };
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-      const script = document.createElement('script');
-      script.src = `https://duckduckgo.com/ac/?callback=${callbackName}&q=${encodeURIComponent(search)}`;
-      script.onerror = () => {
-        delete window[callbackName];
-        resolve([]);
-      };
-      document.head.appendChild(script);
-      script.onload = () => script.remove();
-    });
+      const response = await fetch(
+        `https://duckduckgo.com/ac/?q=${encodeURIComponent(search)}&type=list`,
+        {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) return [];
+
+      const data = await response.json();
+
+      if (!Array.isArray(data) || data.length < 2) return [];
+
+      const suggestions = data[1];
+      if (!Array.isArray(suggestions)) return [];
+
+      return suggestions
+        .filter((item) => item.toLowerCase() !== search.toLowerCase())
+        .slice(0, CONFIG.suggestionLimit);
+    } catch {
+      return [];
+    }
   }
 
   static #formatSearchUrl(template, search) {
@@ -282,11 +301,11 @@ export class Search extends HTMLElement {
   }
 
   static #hasProtocol(s) {
-    return /^[a-zA-Z]+:\/\//i.test(s);
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(s);
   }
 
   static #isUrl(s) {
-    return /^((https?:\/\/)?[\w-]+(\.[\w-]+)+\.?(:\d+)?(\/\S*)?)$/i.test(s);
+    return /^(https?:\/\/)?[\w-]+(\.[\w-]+)+/.test(s);
   }
 
   static #compareKey(key) {
