@@ -1,27 +1,27 @@
 image: alpine/edge
 
 packages:
-    - nodejs
+  - nodejs
 
 environment:
-    site: start.m1n.land
+  site: start.m1n.land
 
 secrets:
-    - 9842a2f8-3365-4326-a3c0-9f155df7ae10 # VERCEL_TOKEN
+  - 9842a2f8-3365-4326-a3c0-9f155df7ae10 # VERCEL_TOKEN
 
 tasks:
-    - deploy: |
-          cd $site
-          echo "Installing deployment dependencies..."
-          curl -fsSL https://bun.sh/install | bash
-          export BUN_INSTALL="$HOME/.bun"
-          export PATH="$BUN_INSTALL/bin:$PATH"
-          bun install -g vercel
+  - deploy: |
+      cd $site
+      echo "Installing deployment dependencies..."
+      curl -fsSL https://bun.sh/install | bash
+      export BUN_INSTALL="$HOME/.bun"
+      export PATH="$BUN_INSTALL/bin:$PATH"
+      bun install -g vercel
 
-          # Deploy to Vercel
-          set +x  # Disable command echoing for security
-          export VERCEL_TOKEN=$(cat ~/.VERCEL_TOKEN)
-          echo "Deploying to Vercel..."
-          vercel link -p $site -y --token $VERCEL_TOKEN
-          vercel deploy --prod --token $VERCEL_TOKEN >/dev/null 2>&1
-          echo "Deployment completed successfully"
+      # Deploy to Vercel
+      set +x  # Disable command echoing for security
+      export VERCEL_TOKEN=$(cat ~/.VERCEL_TOKEN)
+      echo "Deploying to Vercel..."
+      vercel link -p $site -y --token $VERCEL_TOKEN
+      vercel deploy --prod --token $VERCEL_TOKEN >/dev/null 2>&1
+      echo "Deployment completed successfully"

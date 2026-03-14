@@ -16,7 +16,7 @@ searchTemplate.innerHTML = `
 
     .dialog {
       align-items: center;
-      background: var(--color-background);
+      background: transparent;
       border: none;
       display: none;
       flex-direction: column;
@@ -28,6 +28,22 @@ searchTemplate.innerHTML = `
       width: 100%;
       opacity: 0;
       transition: opacity 0.15s ease;
+    }
+
+    .dialog::backdrop {
+      background: rgba(8, 9, 9, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+    }
+
+    .dialog[open]::backdrop {
+      animation: backdropIn 0.25s var(--transition-easing) forwards;
+    }
+
+    @keyframes backdropIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     .dialog[open] {
@@ -146,7 +162,7 @@ searchTemplate.innerHTML = `
       }
     }
 
-    .suggestion:focus,
+    .suggestion:focus-visible,
     .suggestion:hover {
       color: var(--color-accent);
       border-color: var(--color-accent);
@@ -155,7 +171,7 @@ searchTemplate.innerHTML = `
       box-shadow: 0 4px 12px var(--color-accent-glow);
     }
 
-    .suggestion:focus {
+    .suggestion:focus-visible {
       outline: none;
     }
 
@@ -170,7 +186,7 @@ searchTemplate.innerHTML = `
       font-weight: var(--font-weight-bold);
     }
 
-    .suggestion:focus .match,
+    .suggestion:focus-visible .match,
     .suggestion:hover .match {
       color: var(--color-accent);
     }
@@ -214,6 +230,7 @@ export class Search extends HTMLElement {
   #suggestions;
   #debounceTimeout;
   #activeWorkspaceId;
+  #previousFocus;
 
   constructor() {
     super();
@@ -377,11 +394,20 @@ export class Search extends HTMLElement {
   #close() {
     this.#input.value = '';
     this.#input.blur();
+    this.#dialog.style.opacity = '0';
 
     setTimeout(() => {
       this.#dialog.close();
+      this.#dialog.style.opacity = '';
       this.#suggestions.replaceChildren();
-    }, 80);
+      if (
+        this.#previousFocus &&
+        typeof this.#previousFocus.focus === 'function'
+      ) {
+        this.#previousFocus.focus();
+        this.#previousFocus = null;
+      }
+    }, 150);
   }
 
   #execute(query) {
@@ -469,7 +495,8 @@ export class Search extends HTMLElement {
     }
 
     if (!this.#dialog.open) {
-      this.#dialog.show();
+      this.#previousFocus = document.activeElement;
+      this.#dialog.showModal();
       this.#input.focus();
 
       requestAnimationFrame(() => {

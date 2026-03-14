@@ -46,11 +46,11 @@ tabsTemplate.innerHTML = `
       background: var(--color-focus);
     }
 
-    .tab:focus {
+    .tab:focus-visible {
       outline: none;
     }
 
-    .tab:focus::after {
+    .tab:focus-visible::after {
       content: '';
       position: absolute;
       inset: 2px;
@@ -119,12 +119,12 @@ tabsTemplate.innerHTML = `
       }
     }
   </style>
-  <nav class="tabs-container"></nav>
+  <nav class="tabs-container" role="tablist" aria-label="Workspaces"></nav>
 `;
 
 const tabTemplate = document.createElement('template');
 tabTemplate.innerHTML = `
-  <button class="tab" type="button">
+  <button class="tab" type="button" role="tab">
     <span class="tab-key"></span>
     <span class="tab-name"></span>
   </button>
@@ -165,6 +165,9 @@ export class Tabs extends HTMLElement {
 
       if (workspace.id === activeId) {
         tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+      } else {
+        tab.setAttribute('aria-selected', 'false');
       }
 
       this.#tabsContainer.appendChild(clone);
@@ -224,6 +227,7 @@ export class Tabs extends HTMLElement {
     this.#tabsContainer.querySelectorAll('.tab').forEach((tab) => {
       const isActive = tab.dataset.workspaceId === workspaceId;
       tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
 
     requestAnimationFrame(() => this.#updateIndicator());

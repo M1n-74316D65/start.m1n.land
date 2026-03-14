@@ -88,7 +88,7 @@ newsTemplate.innerHTML = `
       background: var(--color-accent-subtle);
     }
 
-    .story-type-tab:focus {
+    .story-type-tab:focus-visible {
       outline: none;
       box-shadow: 0 0 0 1px var(--color-accent);
     }
@@ -134,13 +134,16 @@ newsTemplate.innerHTML = `
       transition: transform 0.5s var(--transition-easing);
     }
 
-    .refresh-btn:hover {
+    .refresh-btn:hover,
+    .refresh-btn:focus-visible {
       border-color: var(--color-accent);
       color: var(--color-accent);
       box-shadow: 0 0 12px var(--color-accent-glow);
+      outline: none;
     }
 
-    .refresh-btn:hover svg {
+    .refresh-btn:hover svg,
+    .refresh-btn:focus-visible svg {
       transform: rotate(180deg);
     }
 

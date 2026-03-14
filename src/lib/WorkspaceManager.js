@@ -86,27 +86,15 @@ export class WorkspaceManager {
       console.warn('Failed to save workspace:', error);
     }
 
-    document.body.style.transition = 'opacity 0.15s ease';
-    document.body.style.opacity = '0.9';
-
-    setTimeout(() => {
-      window.dispatchEvent(
-        new CustomEvent('workspacechange', {
-          detail: {
-            workspace: this.activeWorkspace,
-            workspaceId: this.#activeWorkspaceId,
-          },
-          bubbles: true,
-        })
-      );
-
-      setTimeout(() => {
-        document.body.style.opacity = '1';
-        setTimeout(() => {
-          document.body.style.transition = '';
-        }, 150);
-      }, 50);
-    }, 50);
+    window.dispatchEvent(
+      new CustomEvent('workspacechange', {
+        detail: {
+          workspace: this.activeWorkspace,
+          workspaceId: this.#activeWorkspaceId,
+        },
+        bubbles: true,
+      })
+    );
   }
 
   getCommandsForWorkspace(workspaceId) {

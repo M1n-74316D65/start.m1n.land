@@ -7,15 +7,21 @@ commandsTemplate.innerHTML = `
   <style>
     .commands {
       display: grid;
-      gap: 0;
+      gap: 1px;
       list-style: none;
       margin: 0 auto;
       padding: 0;
       width: 100%;
-      background: transparent;
+      background: var(--color-border);
       border: 1px solid var(--color-border);
       border-radius: var(--border-radius);
       overflow: hidden;
+      animation: gridFadeIn 0.25s var(--transition-easing) forwards;
+    }
+
+    @keyframes gridFadeIn {
+      from { opacity: 0; transform: translateY(2px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .command {
@@ -27,30 +33,25 @@ commandsTemplate.innerHTML = `
       text-decoration: none;
       min-height: 48px;
       align-items: center;
-      background: transparent;
+      background: var(--color-background);
       transition: 
         background var(--transition-speed) var(--transition-easing),
         transform var(--transition-speed-fast) var(--transition-easing),
-        box-shadow var(--transition-speed) var(--transition-easing),
-        border-color var(--transition-speed) var(--transition-easing);
-      border-right: 1px solid var(--color-border);
-      border-bottom: 1px solid var(--color-border);
+        box-shadow var(--transition-speed) var(--transition-easing);
     }
 
     .command:hover {
       color: var(--color-text);
       background: var(--color-focus);
-      border-color: var(--color-text-muted);
     }
 
-    .command:focus {
+    .command:focus-visible {
       outline: none;
       background: var(--color-accent-subtle);
-      border-color: var(--color-accent);
       z-index: 1;
     }
 
-    .command:focus::before {
+    .command:focus-visible::before {
       content: '';
       position: absolute;
       inset: 0;
@@ -70,7 +71,7 @@ commandsTemplate.innerHTML = `
       box-shadow: 0 0 12px var(--color-accent-glow);
     }
 
-    .command:focus .key {
+    .command:focus-visible .key {
       background: var(--color-accent);
       color: var(--color-background);
       border-color: var(--color-accent);
@@ -114,7 +115,7 @@ commandsTemplate.innerHTML = `
       transform: translateX(2px);
     }
 
-    .command:focus .name {
+    .command:focus-visible .name {
       color: var(--color-text);
     }
 
@@ -187,12 +188,6 @@ export class Commands extends HTMLElement {
         grid-template-columns: repeat(${cols}, 1fr);
         max-width: ${cols * 12}rem;
       }
-      .command:nth-child(${cols}n) {
-        border-right: none;
-      }
-      .command:nth-last-child(-n + ${cols}) {
-        border-bottom: none;
-      }
     `;
   }
 
@@ -258,6 +253,11 @@ export class Commands extends HTMLElement {
     commandsContainer.replaceChildren(fragment);
     this.#updateGridStyles(count);
     commandsContainer.style.display = 'grid';
+
+    // Retrigger animation
+    commandsContainer.style.animation = 'none';
+    commandsContainer.offsetHeight; /* trigger reflow */
+    commandsContainer.style.animation = '';
   }
 
   #getSortedCommands(workspaceCommands) {
