@@ -16,6 +16,11 @@ newsTemplate.innerHTML = `
       outline: none;
     }
 
+    .news-container:focus-visible {
+      box-shadow: 0 0 0 1px var(--color-accent);
+      border-radius: calc(var(--border-radius) + 0.2rem);
+    }
+
     .news-header {
       display: flex;
       align-items: center;
@@ -227,6 +232,13 @@ newsTemplate.innerHTML = `
     }
 
     .news-item.keyboard-focus .news-item-title-link {
+      color: var(--color-text);
+    }
+
+    .news-item.keyboard-focus .comments-link,
+    .news-item.keyboard-focus .time-badge,
+    .news-item.keyboard-focus .news-item-domain {
+      opacity: 1;
       color: var(--color-text);
     }
 
@@ -554,8 +566,37 @@ newsTemplate.innerHTML = `
         gap: var(--space);
       }
     }
+
+    @media (max-width: 699px) {
+      .news-item {
+        grid-template-columns: 2.25rem 1fr;
+        align-items: start;
+      }
+
+      .news-item-stats {
+        grid-column: 2;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: calc(var(--space) * 0.75);
+      }
+
+      .news-item-title {
+        -webkit-line-clamp: 3;
+      }
+
+      .news-item-domain {
+        max-width: 10rem;
+      }
+    }
+
+    @media (hover: none), (pointer: coarse) {
+      .keyboard-hint {
+        display: none;
+      }
+    }
   </style>
-  <div class="news-container" tabindex="-1">
+  <div class="news-container" tabindex="0" role="region" aria-label="Hacker News feed">
     <div class="news-header">
       <div class="news-title-section">
         <a
@@ -654,6 +695,7 @@ export class NewsFeed extends HTMLElement {
   #CACHE_KEY_PREFIX = 'hacker-news-';
   #CACHE_DURATION = 30 * 60 * 1000;
   #keyboardListeners = [];
+  #isFeedFocused = false;
 
   constructor() {
     super();
@@ -671,51 +713,69 @@ export class NewsFeed extends HTMLElement {
   }
 
   connectedCallback() {
-    this.#setupGlobalKeyboardListeners();
+    this.#setupKeyboardListeners();
   }
 
   disconnectedCallback() {
     this.#cleanupKeyboardListeners();
   }
 
-  #setupGlobalKeyboardListeners() {
+  #setupKeyboardListeners() {
     const handleKeyDown = (e) => {
       if (!this.isConnected) return;
 
-      const activeElement = this.shadowRoot.activeElement;
-      const isFocused = this.shadowRoot.querySelector(
-        '.news-item.keyboard-focus'
-      );
+      if (!this.#isFeedFocused && e.target !== this.#container) return;
 
       if (e.key >= '1' && e.key <= '5') {
         const typeIndex = parseInt(e.key) - 1;
         if (typeIndex < STORY_TYPES.length) {
           e.preventDefault();
+          e.stopPropagation();
           this.#switchStoryType(STORY_TYPES[typeIndex]);
         }
       } else if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J') {
         e.preventDefault();
+        e.stopPropagation();
         this.#navigateStory(1);
         this.#showKeyboardHint();
       } else if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K') {
         e.preventDefault();
+        e.stopPropagation();
         this.#navigateStory(-1);
         this.#showKeyboardHint();
       } else if (e.key === 'Enter' && this.#focusedIndex >= 0) {
         e.preventDefault();
+        e.stopPropagation();
         this.#openCurrentStory();
       } else if ((e.key === 'c' || e.key === 'C') && this.#focusedIndex >= 0) {
         e.preventDefault();
+        e.stopPropagation();
         this.#openCurrentComments();
       } else if (e.key === 'Escape') {
+        e.stopPropagation();
         this.#clearFocus();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    this.#keyboardListeners.push(() =>
-      document.removeEventListener('keydown', handleKeyDown)
-    );
+    const handleFocusIn = () => {
+      this.#isFeedFocused = true;
+      this.#showKeyboardHint();
+    };
+
+    const handleFocusOut = () => {
+      requestAnimationFrame(() => {
+        this.#isFeedFocused = Boolean(this.shadowRoot.activeElement);
+      });
+    };
+
+    this.shadowRoot.addEventListener('keydown', handleKeyDown);
+    this.shadowRoot.addEventListener('focusin', handleFocusIn);
+    this.shadowRoot.addEventListener('focusout', handleFocusOut);
+    this.#keyboardListeners.push(() => {
+      this.shadowRoot.removeEventListener('keydown', handleKeyDown);
+      this.shadowRoot.removeEventListener('focusin', handleFocusIn);
+      this.shadowRoot.removeEventListener('focusout', handleFocusOut);
+    });
   }
 
   #cleanupKeyboardListeners() {
@@ -820,13 +880,15 @@ export class NewsFeed extends HTMLElement {
       });
     });
 
-    this.#container.addEventListener(
-      'mouseenter',
-      () => {
+    this.#container.addEventListener('mouseenter', () => {
+      if (window.matchMedia('(hover: hover)').matches) {
         this.#showKeyboardHint();
-      },
-      { once: true }
-    );
+      }
+    });
+
+    this.#container.addEventListener('click', () => {
+      this.#container.focus();
+    });
   }
 
   #isCacheValid() {

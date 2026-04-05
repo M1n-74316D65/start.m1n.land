@@ -8,7 +8,8 @@ clockTemplate.innerHTML = `
       flex-direction: column;
       align-items: center;
       gap: calc(var(--space) * 0.35);
-      margin-bottom: calc(var(--space) * 2.5);
+      margin-bottom: calc(var(--space) * 1.25);
+      text-align: center;
     }
 
     .greeting {
@@ -37,53 +38,20 @@ clockTemplate.innerHTML = `
       text-transform: uppercase;
     }
 
-    .keyboard-hint {
-      color: var(--color-text-subtle);
-      font-size: 0.7rem;
-      margin-top: calc(var(--space) * 1.25);
-      opacity: 0.6;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      justify-content: center;
+    .workspace-status {
+      color: var(--color-accent);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-top: calc(var(--space) * 0.45);
     }
 
-    .keyboard-hint kbd {
-      background: transparent;
-      padding: 0.2rem 0.45rem;
-      border-radius: 0;
-      border: 1px solid var(--color-text-subtle);
-      font-family: inherit;
-      font-size: 0.7rem;
-    }
-
-    .hint-group {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-    }
-
-    .hint-separator {
-      margin: 0 0.5rem;
-    }
   </style>
   <div class="clock-container">
     <span class="greeting"></span>
     <time class="time"></time>
     <span class="date"></span>
-    <div class="keyboard-hint">
-      <span class="hint-group">
-        <kbd>⌘</kbd>
-        <kbd class="workspace-hint"></kbd>
-        <span>switch workspace</span>
-      </span>
-      <span class="hint-separator">·</span>
-      <span class="hint-group">
-        <kbd>type</kbd>
-        <span>search</span>
-      </span>
-    </div>
+    <span class="workspace-status"></span>
   </div>
 `;
 
@@ -95,7 +63,7 @@ export class Clock extends HTMLElement {
   #lastHours = -1;
   #lastMinutes = -1;
   #lastDate = '';
-  #workspaceHint;
+  #workspaceStatus;
   #boundWorkspaceChange;
 
   constructor() {
@@ -105,11 +73,13 @@ export class Clock extends HTMLElement {
     this.#greeting = this.shadowRoot.querySelector('.greeting');
     this.#time = this.shadowRoot.querySelector('.time');
     this.#date = this.shadowRoot.querySelector('.date');
-    this.#workspaceHint = this.shadowRoot.querySelector('.workspace-hint');
-    this.#updateWorkspaceHint();
+    this.#workspaceStatus = this.shadowRoot.querySelector('.workspace-status');
+    this.#updateWorkspaceStatus();
     this.#updateClock();
     this.#interval = setInterval(() => this.#updateClock(), 1000);
-    this.#boundWorkspaceChange = this.#updateWorkspaceHint.bind(this);
+    this.#boundWorkspaceChange = () => {
+      this.#updateWorkspaceStatus();
+    };
     window.addEventListener('workspacechange', this.#boundWorkspaceChange);
   }
 
@@ -120,15 +90,11 @@ export class Clock extends HTMLElement {
     }
   }
 
-  #updateWorkspaceHint() {
-    if (this.#workspaceHint) {
-      const count = workspaceManager.workspaces.length;
-      if (count === 1) {
-        this.#workspaceHint.textContent = '1';
-      } else {
-        this.#workspaceHint.textContent = `1-${count}`;
-      }
-    }
+  #updateWorkspaceStatus() {
+    if (!this.#workspaceStatus) return;
+
+    const workspaceName = workspaceManager.activeWorkspace?.name || 'Personal';
+    this.#workspaceStatus.textContent = `${workspaceName} workspace ready`;
   }
 
   #updateClock() {

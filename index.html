@@ -74,7 +74,7 @@
     box-sizing: border-box;
     min-height: 100dvh;
     width: 100vw;
-    padding: calc(var(--space) * 4) var(--space) calc(var(--space) * 3);
+    padding: calc(var(--space) * 2.5) var(--space) calc(var(--space) * 2);
     overflow: hidden;
     position: relative;
     opacity: 0;
@@ -95,16 +95,17 @@
     justify-content: center;
     flex: 1;
     width: 100%;
-    max-width: 48rem;
-    gap: calc(var(--space) * 1.5);
+    max-width: 40rem;
+    gap: var(--space);
   }
 
   .news-section {
     display: flex;
     justify-content: center;
     width: 100%;
-    padding: 0 var(--space) calc(var(--space) * 3);
-    margin-top: calc(var(--space) * 2);
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 0 var(--space) calc(var(--space) * 2);
   }
 
   @keyframes fadeIn {

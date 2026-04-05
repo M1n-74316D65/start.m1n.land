@@ -5,6 +5,100 @@ import { CONFIG } from '../config.js';
 const commandsTemplate = document.createElement('template');
 commandsTemplate.innerHTML = `
   <style>
+    .commands-shell {
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--space) * 0.9);
+      width: 100%;
+    }
+
+    .quick-access {
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--space) * 0.55);
+      width: 100%;
+    }
+
+    .quick-access[hidden] {
+      display: none;
+    }
+
+    .quick-access-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space);
+      color: var(--color-text-subtle);
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0 calc(var(--space) * 0.15);
+    }
+
+    .quick-access-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: calc(var(--space) * 0.45);
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .quick-access-item {
+      margin: 0;
+    }
+
+    .quick-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: calc(var(--space) * 0.45) calc(var(--space) * 0.7);
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-surface-elevated) 70%, transparent);
+      color: var(--color-text-subtle);
+      text-decoration: none;
+      transition:
+        border-color var(--transition-speed) var(--transition-easing),
+        color var(--transition-speed) var(--transition-easing),
+        background var(--transition-speed) var(--transition-easing),
+        transform var(--transition-speed-fast) var(--transition-easing);
+    }
+
+    .quick-link:hover,
+    .quick-link:focus-visible {
+      color: var(--color-text);
+      border-color: var(--color-accent);
+      background: var(--color-accent-subtle);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .quick-link:focus-visible {
+      box-shadow: 0 0 0 1px var(--color-accent-glow);
+    }
+
+    .quick-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.4rem;
+      height: 1.4rem;
+      border-radius: 999px;
+      border: 1px solid var(--color-accent);
+      color: var(--color-accent);
+      font-size: 0.68rem;
+      font-weight: var(--font-weight-bold);
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .quick-name {
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
     .commands {
       display: grid;
       gap: 1px;
@@ -125,9 +219,17 @@ commandsTemplate.innerHTML = `
       }
     }
   </style>
-  <nav>
-    <menu class="commands"></menu>
-  </nav>
+  <div class="commands-shell">
+    <section class="quick-access" hidden>
+      <div class="quick-access-header">
+        <span class="quick-access-title">Recent</span>
+      </div>
+      <ul class="quick-access-list"></ul>
+    </section>
+    <nav aria-label="Workspace shortcuts">
+      <menu class="commands"></menu>
+    </nav>
+  </div>
 `;
 
 const commandTemplate = document.createElement('template');
@@ -143,8 +245,6 @@ commandTemplate.innerHTML = `
 export class Commands extends HTMLElement {
   #activeWorkspaceId;
   #dynamicStyle;
-  #sortedCommandsCache = null;
-  #cachedWorkspaceId = null;
   #boundWorkspaceChange;
 
   constructor() {
@@ -212,7 +312,6 @@ export class Commands extends HTMLElement {
   #initializeEventListeners() {
     this.#boundWorkspaceChange = (e) => {
       this.#activeWorkspaceId = e.detail.workspaceId;
-      this.#sortedCommandsCache = null;
       this.rerender();
     };
     window.addEventListener('workspacechange', this.#boundWorkspaceChange);
@@ -226,20 +325,24 @@ export class Commands extends HTMLElement {
 
   render() {
     const commandsContainer = this.shadowRoot.querySelector('.commands');
+    const quickAccess = this.shadowRoot.querySelector('.quick-access');
     const fragment = this.createCommandsFragment();
     const count = fragment.children.length;
 
     if (count === 0) {
       commandsContainer.style.display = 'none';
+      quickAccess.hidden = true;
       return;
     }
 
+    this.#renderQuickAccess();
     this.#updateGridStyles(count);
     commandsContainer.appendChild(fragment);
   }
 
   rerender() {
     const commandsContainer = this.shadowRoot.querySelector('.commands');
+    const quickAccess = this.shadowRoot.querySelector('.quick-access');
     if (!commandsContainer) return;
 
     const fragment = this.createCommandsFragment();
@@ -247,9 +350,11 @@ export class Commands extends HTMLElement {
 
     if (count === 0) {
       commandsContainer.style.display = 'none';
+      quickAccess.hidden = true;
       return;
     }
 
+    this.#renderQuickAccess();
     commandsContainer.replaceChildren(fragment);
     this.#updateGridStyles(count);
     commandsContainer.style.display = 'grid';
@@ -260,24 +365,58 @@ export class Commands extends HTMLElement {
     commandsContainer.style.animation = '';
   }
 
-  #getSortedCommands(workspaceCommands) {
-    if (
-      this.#sortedCommandsCache &&
-      this.#cachedWorkspaceId === this.#activeWorkspaceId
-    ) {
-      return this.#sortedCommandsCache;
+  #renderQuickAccess() {
+    const quickAccess = this.shadowRoot.querySelector('.quick-access');
+    const quickAccessTitle = this.shadowRoot.querySelector(
+      '.quick-access-title'
+    );
+    const quickAccessList = this.shadowRoot.querySelector('.quick-access-list');
+    const workspaceCommands = workspaceManager.getCommandsForWorkspace(
+      this.#activeWorkspaceId
+    );
+    const commandKeys = Array.from(workspaceCommands.keys());
+
+    const recent = UsageTracker.getRecentCommands(commandKeys, 4);
+    const frequent = UsageTracker.getFrequentCommands(commandKeys, 4);
+    const items = recent.length > 0 ? recent : frequent;
+
+    quickAccessList.replaceChildren();
+
+    if (items.length === 0) {
+      quickAccess.hidden = true;
+      return;
     }
 
-    const sorted = Array.from(workspaceCommands.entries()).sort((a, b) => {
-      const usageA = UsageTracker.getUsageCount(a[0]);
-      const usageB = UsageTracker.getUsageCount(b[0]);
-      return usageB - usageA;
+    quickAccessTitle.textContent = recent.length > 0 ? 'Recent' : 'Popular';
+
+    const fragment = document.createDocumentFragment();
+    items.forEach(({ commandKey }) => {
+      const command = workspaceCommands.get(commandKey);
+      if (!command) return;
+
+      const item = document.createElement('li');
+      item.className = 'quick-access-item';
+
+      const link = document.createElement('a');
+      link.className = 'quick-link';
+      link.href = command.url;
+      link.rel = 'noopener noreferrer';
+      link.innerHTML = `
+        <span class="quick-key">${commandKey}</span>
+        <span class="quick-name">${command.name}</span>
+      `;
+
+      if (CONFIG.openLinksInNewTab) link.target = '_blank';
+      link.addEventListener('click', () => {
+        UsageTracker.recordUsage(commandKey);
+      });
+
+      item.appendChild(link);
+      fragment.appendChild(item);
     });
 
-    this.#sortedCommandsCache = sorted;
-    this.#cachedWorkspaceId = this.#activeWorkspaceId;
-
-    return sorted;
+    quickAccessList.appendChild(fragment);
+    quickAccess.hidden = false;
   }
 
   createCommandsFragment() {
@@ -285,9 +424,8 @@ export class Commands extends HTMLElement {
     const workspaceCommands = workspaceManager.getCommandsForWorkspace(
       this.#activeWorkspaceId
     );
-    const sortedCommands = this.#getSortedCommands(workspaceCommands);
 
-    for (const [key, { name, url }] of sortedCommands) {
+    for (const [key, { name, url }] of workspaceCommands.entries()) {
       if (!name || !url) continue;
       const commandClone = this.createCommandElement(key, name, url);
       fragment.appendChild(commandClone);

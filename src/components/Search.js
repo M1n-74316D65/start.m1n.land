@@ -31,9 +31,9 @@ searchTemplate.innerHTML = `
     }
 
     .dialog::backdrop {
-      background: rgba(8, 9, 9, 0.85);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      background: rgba(8, 9, 9, 0.75);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       opacity: 0;
     }
 
@@ -77,7 +77,7 @@ searchTemplate.innerHTML = `
 
     .form {
       width: 100%;
-      max-width: 28rem;
+      max-width: 34rem;
     }
 
     .input-wrapper {
@@ -85,28 +85,26 @@ searchTemplate.innerHTML = `
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-direction: column;
+      gap: calc(var(--space) * 0.7);
     }
 
     .input {
       color: var(--color-text);
-      font-size: clamp(1.6rem, 5vw, 2.5rem);
+      font-size: clamp(1.4rem, 4vw, 2rem);
       font-weight: var(--font-weight-bold);
       padding: 0.25em 0.5em;
       text-align: center;
       width: 100%;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      letter-spacing: 0.02em;
       background: transparent;
       border: 2px solid transparent;
       border-bottom-color: var(--color-border);
-      transition: 
-        border-color 0.2s var(--transition-easing),
-        text-shadow 0.2s var(--transition-easing);
+      transition: border-color 0.2s var(--transition-easing);
     }
 
     .input:focus {
       border-bottom-color: var(--color-accent);
-      text-shadow: 0 0 24px var(--color-accent-glow);
     }
 
     .input::placeholder {
@@ -129,10 +127,10 @@ searchTemplate.innerHTML = `
     }
 
     .suggestion {
-      color: var(--color-text-subtle);
+      color: var(--color-text-muted);
       cursor: pointer;
-      font-size: 0.75rem;
-      padding: calc(var(--space) * 0.55) calc(var(--space) * 0.9);
+      font-size: 0.72rem;
+      padding: calc(var(--space) * 0.45) calc(var(--space) * 0.75);
       position: relative;
       transition: 
         all var(--transition-speed) var(--transition-easing),
@@ -142,9 +140,8 @@ searchTemplate.innerHTML = `
       border-radius: var(--border-radius);
       outline: 0;
       background: transparent;
-      border: 1px solid var(--color-border);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      border: 1px solid transparent;
+      letter-spacing: 0.06em;
       opacity: 0;
       transform: translateY(-4px);
       animation: suggestionIn 0.2s var(--transition-easing) forwards;
@@ -197,7 +194,7 @@ searchTemplate.innerHTML = `
       }
     }
   </style>
-  <dialog class="dialog">
+    <dialog class="dialog">
     <form autocomplete="off" class="form" method="dialog" spellcheck="false">
       <div class="input-wrapper">
         <input
@@ -205,7 +202,7 @@ searchTemplate.innerHTML = `
           aria-label="Search"
           title="search"
           type="text"
-          placeholder="Type to search..."
+          placeholder="Command, search, or URL"
         />
       </div>
       <menu class="suggestions"></menu>
@@ -329,6 +326,24 @@ export class Search extends HTMLElement {
     return CONFIG.commandCaseSensitive ? key : key.toLowerCase();
   }
 
+  static #isEditableTarget(target) {
+    if (!(target instanceof HTMLElement)) return false;
+
+    if (target.isContentEditable) return true;
+
+    return ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+  }
+
+  static #isPrintableKey(event) {
+    return (
+      event.key.length === 1 &&
+      event.key !== ' ' &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    );
+  }
+
   static #getCommandWithKey(key, workspaceCommands) {
     if (CONFIG.commandCaseSensitive) {
       const command = workspaceCommands.get(key);
@@ -410,6 +425,23 @@ export class Search extends HTMLElement {
     }, 150);
   }
 
+  #open(initialValue = '') {
+    this.#previousFocus = document.activeElement;
+    if (!this.#dialog.open) {
+      this.#dialog.showModal();
+    }
+
+    this.#input.value = initialValue;
+    this.#input.focus();
+
+    if (initialValue) {
+      this.#input.setSelectionRange(initialValue.length, initialValue.length);
+      this.#onInput();
+    } else {
+      this.#suggestions.replaceChildren();
+    }
+  }
+
   #execute(query) {
     const parsedQuery = this.#parseQuery(query);
     if (parsedQuery.key) {
@@ -486,23 +518,21 @@ export class Search extends HTMLElement {
   }
 
   #onKeydown(e) {
-    if (e.altKey && !/^[1-9]$/.test(e.key)) {
-      return;
-    }
-
-    if (e.metaKey || e.ctrlKey || e.altKey) {
-      return;
-    }
-
     if (!this.#dialog.open) {
-      this.#previousFocus = document.activeElement;
-      this.#dialog.showModal();
-      this.#input.focus();
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-      requestAnimationFrame(() => {
-        if (!this.#input.value) this.#close();
-      });
+      if (Search.#isEditableTarget(e.target)) return;
 
+      if (e.key === '/') {
+        e.preventDefault();
+        this.#open('');
+        return;
+      }
+
+      if (!Search.#isPrintableKey(e)) return;
+
+      e.preventDefault();
+      this.#open(e.key);
       return;
     }
 
