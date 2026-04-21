@@ -26,6 +26,7 @@ async function fetchStories(type = 'top', limit = 10) {
     const response = await fetch(
       `https://hacker-news.firebaseio.com/v0/${endpoint}.json`
     );
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const storyIds = await response.json();
     const topStoryIds = storyIds.slice(0, limit);
 
@@ -48,6 +49,7 @@ async function fetchStory(id) {
     const response = await fetch(
       `https://hacker-news.firebaseio.com/v0/item/${id}.json`
     );
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
   } catch (error) {
     console.error(`Failed to fetch story ${id}:`, error);

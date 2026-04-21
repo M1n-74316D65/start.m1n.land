@@ -8,7 +8,7 @@ commandsTemplate.innerHTML = `
     .commands-shell {
       display: flex;
       flex-direction: column;
-      gap: calc(var(--space) * 0.9);
+      gap: calc(var(--space) * 1.25);
       width: 100%;
     }
 
@@ -157,6 +157,7 @@ commandsTemplate.innerHTML = `
     .command:active {
       transform: scale(0.985);
       transition: transform 80ms var(--transition-easing);
+      background: var(--color-accent-subtle);
     }
 
     .command:hover .key {
@@ -254,8 +255,11 @@ export class Commands extends HTMLElement {
     this.shadowRoot.appendChild(this.#dynamicStyle);
     this.shadowRoot.appendChild(commandsTemplate.content.cloneNode(true));
     this.#activeWorkspaceId = workspaceManager.activeWorkspaceId;
-    this.render();
     this.#initializeEventListeners();
+  }
+
+  connectedCallback() {
+    this.render();
   }
 
   #calculateOptimalColumns(count, maxCols) {

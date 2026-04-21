@@ -23,7 +23,7 @@ clockTemplate.innerHTML = `
     .time {
       color: var(--color-text);
       font-size: clamp(2.5rem, 7vw, 4rem);
-      font-weight: 600;
+      font-weight: var(--font-weight-bold);
       letter-spacing: 0.02em;
       line-height: 1;
       font-variant-numeric: tabular-nums;

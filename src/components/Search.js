@@ -31,7 +31,7 @@ searchTemplate.innerHTML = `
     }
 
     .dialog::backdrop {
-      background: rgba(8, 9, 9, 0.75);
+      background: color-mix(in srgb, var(--color-background) 75%, transparent);
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
       opacity: 0;
@@ -225,7 +225,6 @@ export class Search extends HTMLElement {
   #form;
   #input;
   #suggestions;
-  #debounceTimeout;
   #activeWorkspaceId;
   #previousFocus;
 
@@ -242,7 +241,6 @@ export class Search extends HTMLElement {
   }
 
   disconnectedCallback() {
-    clearTimeout(this.#debounceTimeout);
     this.#removeEventListeners();
   }
 
@@ -417,6 +415,7 @@ export class Search extends HTMLElement {
       this.#suggestions.replaceChildren();
       if (
         this.#previousFocus &&
+        this.#previousFocus.isConnected &&
         typeof this.#previousFocus.focus === 'function'
       ) {
         this.#previousFocus.focus();
@@ -472,7 +471,8 @@ export class Search extends HTMLElement {
     const workspaceCommands = workspaceManager.getCommandsForWorkspace(
       this.#activeWorkspaceId
     );
-    const parsedQuery = this.#parseQuery(this.#input.value);
+    const inputValue = this.#input.value;
+    const parsedQuery = this.#parseQuery(inputValue);
 
     if (!parsedQuery.query) {
       this.#close();
@@ -490,6 +490,12 @@ export class Search extends HTMLElement {
         parsedQuery.search
       );
 
+      // Re-check input hasn't changed during async fetch
+      if (
+        Search.#compareKey(this.#input.value) !== Search.#compareKey(inputValue)
+      )
+        return;
+
       suggestions = suggestions.concat(
         parsedQuery.key
           ? ddgSuggestions.map(
@@ -498,13 +504,6 @@ export class Search extends HTMLElement {
           : ddgSuggestions
       );
     }
-
-    const newParsedQuery = this.#parseQuery(this.#input.value);
-    if (
-      Search.#compareKey(newParsedQuery.query) !==
-      Search.#compareKey(parsedQuery.query)
-    )
-      return;
 
     const filteredSuggestions = CONFIG.commandCaseSensitive
       ? suggestions

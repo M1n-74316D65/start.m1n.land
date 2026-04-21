@@ -595,6 +595,15 @@ newsTemplate.innerHTML = `
         display: none;
       }
     }
+
+    @media (max-height: 600px) {
+      .keyboard-hint {
+        position: static;
+        margin-top: calc(var(--space) * 0.5);
+        opacity: 1;
+        transform: none;
+      }
+    }
   </style>
   <div class="news-container" tabindex="0" role="region" aria-label="Hacker News feed">
     <div class="news-header">
@@ -694,8 +703,11 @@ export class NewsFeed extends HTMLElement {
   #focusedIndex = -1;
   #CACHE_KEY_PREFIX = 'hacker-news-';
   #CACHE_DURATION = 30 * 60 * 1000;
+  #HOT_SCORE_PER_HOUR = 30;
+  #HOT_MIN_SCORE = 50;
   #keyboardListeners = [];
   #isFeedFocused = false;
+  #hideHintTimeout;
 
   constructor() {
     super();
@@ -718,6 +730,7 @@ export class NewsFeed extends HTMLElement {
 
   disconnectedCallback() {
     this.#cleanupKeyboardListeners();
+    clearTimeout(this.#hideHintTimeout);
   }
 
   #setupKeyboardListeners() {
@@ -752,7 +765,6 @@ export class NewsFeed extends HTMLElement {
         e.stopPropagation();
         this.#openCurrentComments();
       } else if (e.key === 'Escape') {
-        e.stopPropagation();
         this.#clearFocus();
       }
     };
@@ -853,8 +865,7 @@ export class NewsFeed extends HTMLElement {
 
   #showKeyboardHint() {
     this.#keyboardHint.classList.add('visible');
-    clearTimeout(this._hideHintTimeout);
-    this._hideHintTimeout = setTimeout(() => {
+    this.#hideHintTimeout = setTimeout(() => {
       this.#keyboardHint.classList.remove('visible');
     }, 3000);
   }
@@ -862,7 +873,10 @@ export class NewsFeed extends HTMLElement {
   #isHotStory(story) {
     const ageHours = (Date.now() / 1000 - story.time) / 3600;
     const scorePerHour = story.score / Math.max(ageHours, 0.5);
-    return scorePerHour > 30 && story.score > 50;
+    return (
+      scorePerHour > this.#HOT_SCORE_PER_HOUR &&
+      story.score > this.#HOT_MIN_SCORE
+    );
   }
 
   #getCacheKey() {
