@@ -1,5 +1,20 @@
 :root {
+  /* Spacing scale - semantic tokens */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 0.875rem;
+  --space-lg: 1.25rem;
+  --space-xl: 1.75rem;
+  --space-2xl: 2.5rem;
+  --space: var(--space-md); /* Backward compatibility alias */
+
+  /* Border radius */
   --border-radius: 0.25rem;
+  --border-radius-sm: 0.125rem;
+  --border-radius-lg: 0.375rem;
+  --border-radius-full: 999px;
+
+  /* Colors */
   --color-background: #080909;
   --color-surface: #0f1010;
   --color-surface-elevated: #141616;
@@ -14,6 +29,8 @@
   --color-accent-glow: rgba(124, 186, 95, 0.12);
   --color-accent-subtle: rgba(124, 186, 95, 0.08);
   --color-scanline: rgba(255, 255, 255, 0.018);
+
+  /* Typography */
   --font-family:
     'IBM Plex Mono', 'SFMono-Regular', Menlo, Monaco, Consolas,
     'Liberation Mono', monospace;
@@ -21,11 +38,22 @@
   --font-weight-bold: 500;
   --font-weight-normal: 400;
   --letter-spacing: 0.015em;
-  --space: 0.875rem;
-  --transition-speed: 180ms;
-  --transition-easing: cubic-bezier(0.25, 0.1, 0.25, 1);
-  --transition-speed-fast: 100ms;
-  --transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Animation & transitions */
+  --duration-fast: 100ms;
+  --duration-normal: 180ms;
+  --duration-slow: 250ms;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Legacy aliases */
+  --transition-speed: var(--duration-normal);
+  --transition-speed-fast: var(--duration-fast);
+  --transition-easing: var(--ease-spring);
+  --transition-bounce: var(--ease-spring);
+
+  /* Borders & shadows */
   --grid-border: 1px solid var(--color-border);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
@@ -36,6 +64,7 @@
 
 @media (prefers-color-scheme: light) {
   :root {
+    /* Colors */
     --color-background: #f0f1f0;
     --color-surface: #e8e9e8;
     --color-surface-elevated: #ffffff;
@@ -50,6 +79,8 @@
     --color-accent-glow: rgba(91, 148, 59, 0.1);
     --color-accent-subtle: rgba(91, 148, 59, 0.06);
     --color-scanline: rgba(0, 0, 0, 0.02);
+    
+    /* Shadows */
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.18);

@@ -6,12 +6,13 @@ tabsTemplate.innerHTML = `
     .tabs-container {
       display: flex;
       gap: 0;
-      margin-bottom: calc(var(--space) * 1.5);
+      margin-bottom: var(--space-lg);
       background: transparent;
       border: 1px solid var(--color-border);
       border-radius: var(--border-radius);
       overflow: hidden;
       position: relative;
+      width: 100%;
     }
 
     .tab {
@@ -21,19 +22,19 @@ tabsTemplate.innerHTML = `
       color: var(--color-text-subtle);
       cursor: pointer;
       font-family: var(--font-family);
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: var(--font-weight-normal);
       letter-spacing: 0.08em;
-      padding: calc(var(--space) * 0.6) calc(var(--space) * 0.95);
+      padding: var(--space-sm) var(--space-md);
       position: relative;
       text-transform: uppercase;
       transition: 
-        color var(--transition-speed) var(--transition-easing),
-        background var(--transition-speed) var(--transition-easing);
+        color var(--duration-normal) var(--ease-spring),
+        background var(--duration-normal) var(--ease-spring);
       outline: 0;
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: var(--space-xs);
       z-index: 1;
     }
 
@@ -55,13 +56,13 @@ tabsTemplate.innerHTML = `
       position: absolute;
       inset: 2px;
       border: 1px solid var(--color-accent);
-      border-radius: 2px;
+      border-radius: var(--border-radius-sm);
       pointer-events: none;
     }
 
     .tab:active {
       transform: scale(0.98);
-      transition: transform 80ms var(--transition-easing);
+      transition: transform var(--duration-fast) var(--ease-spring);
     }
 
     .tab.active {
@@ -75,28 +76,30 @@ tabsTemplate.innerHTML = `
       height: 2px;
       background: var(--color-accent);
       transition: 
-        left 0.25s var(--transition-easing),
-        width 0.25s var(--transition-easing);
+        left var(--duration-slow) var(--ease-spring),
+        width var(--duration-slow) var(--ease-spring);
       pointer-events: none;
+      will-change: left, width;
     }
 
     .tab-key {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 1.2rem;
-      height: 1.2rem;
-      font-size: 0.6rem;
+      width: 1.15rem;
+      height: 1.15rem;
+      font-size: 0.58rem;
       font-weight: var(--font-weight-bold);
       background: transparent;
       border: 1px solid var(--color-text-muted);
       border-radius: var(--border-radius);
       opacity: 0.5;
       transition: 
-        all var(--transition-speed) var(--transition-easing),
-        border-color var(--transition-speed) var(--transition-easing),
-        background var(--transition-speed) var(--transition-easing),
-        box-shadow var(--transition-speed) var(--transition-easing);
+        opacity var(--duration-normal) var(--ease-spring),
+        border-color var(--duration-normal) var(--ease-spring),
+        background var(--duration-normal) var(--ease-spring),
+        box-shadow var(--duration-normal) var(--ease-spring),
+        color var(--duration-normal) var(--ease-spring);
     }
 
     .tab:hover .tab-key {
@@ -114,8 +117,8 @@ tabsTemplate.innerHTML = `
 
     @media (min-width: 600px) {
       .tab {
-        font-size: 0.75rem;
-        padding: calc(var(--space) * 0.6) calc(var(--space) * 1);
+        font-size: 0.72rem;
+        padding: var(--space-sm) var(--space-md);
       }
     }
   </style>
@@ -124,8 +127,8 @@ tabsTemplate.innerHTML = `
 
 const tabTemplate = document.createElement('template');
 tabTemplate.innerHTML = `
-  <button class="tab" type="button" role="tab">
-    <span class="tab-key"></span>
+  <button class="tab" type="button" role="tab" aria-selected="false">
+    <span class="tab-key" aria-hidden="true"></span>
     <span class="tab-name"></span>
   </button>
 `;
@@ -238,8 +241,11 @@ export class Tabs extends HTMLElement {
     if (activeTab) {
       const tabRect = activeTab.getBoundingClientRect();
       const containerRect = this.#tabsContainer.getBoundingClientRect();
-      this.#indicator.style.left = `${tabRect.left - containerRect.left}px`;
-      this.#indicator.style.width = `${tabRect.width}px`;
+      // Use requestAnimationFrame for smoother animation
+      requestAnimationFrame(() => {
+        this.#indicator.style.left = `${tabRect.left - containerRect.left}px`;
+        this.#indicator.style.width = `${tabRect.width}px`;
+      });
     }
   }
 

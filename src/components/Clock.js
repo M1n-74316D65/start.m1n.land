@@ -7,17 +7,29 @@ clockTemplate.innerHTML = `
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: calc(var(--space) * 0.35);
-      margin-bottom: calc(var(--space) * 1.25);
+      gap: var(--space-xs);
+      margin-bottom: var(--space-lg);
       text-align: center;
     }
 
-    .greeting {
+    .greeting-line {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
       color: var(--color-text-subtle);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: var(--font-weight-normal);
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+
+    .greeting {
+      color: inherit;
+    }
+
+    .workspace-status {
+      color: var(--color-accent);
+      letter-spacing: 0.12em;
     }
 
     .time {
@@ -27,31 +39,24 @@ clockTemplate.innerHTML = `
       letter-spacing: 0.02em;
       line-height: 1;
       font-variant-numeric: tabular-nums;
-      transition: opacity var(--transition-speed-fast) var(--transition-easing);
     }
 
     .date {
       color: var(--color-text-subtle);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: var(--font-weight-normal);
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
 
-    .workspace-status {
-      color: var(--color-accent);
-      font-size: 0.72rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin-top: calc(var(--space) * 0.45);
-    }
-
   </style>
   <div class="clock-container">
-    <span class="greeting"></span>
+    <div class="greeting-line">
+      <span class="greeting"></span>
+      <span class="workspace-status"></span>
+    </div>
     <time class="time"></time>
     <span class="date"></span>
-    <span class="workspace-status"></span>
   </div>
 `;
 
@@ -59,11 +64,11 @@ export class Clock extends HTMLElement {
   #greeting;
   #time;
   #date;
+  #workspaceStatus;
   #interval;
   #lastHours = -1;
   #lastMinutes = -1;
   #lastDate = '';
-  #workspaceStatus;
   #boundWorkspaceChange;
 
   constructor() {
@@ -94,7 +99,7 @@ export class Clock extends HTMLElement {
     if (!this.#workspaceStatus) return;
 
     const workspaceName = workspaceManager.activeWorkspace?.name || 'Personal';
-    this.#workspaceStatus.textContent = `${workspaceName} workspace ready`;
+    this.#workspaceStatus.textContent = `${workspaceName} ready`;
   }
 
   #updateClock() {

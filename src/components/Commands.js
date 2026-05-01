@@ -8,37 +8,43 @@ commandsTemplate.innerHTML = `
     .commands-shell {
       display: flex;
       flex-direction: column;
-      gap: calc(var(--space) * 1.25);
+      gap: var(--space-md);
       width: 100%;
     }
 
     .quick-access {
       display: flex;
       flex-direction: column;
-      gap: calc(var(--space) * 0.55);
+      gap: var(--space-sm);
       width: 100%;
+      opacity: 0;
+      transform: translateY(-4px);
+      animation: fadeInUp var(--duration-normal) var(--ease-spring) forwards;
     }
 
-    .quick-access[hidden] {
-      display: none;
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .quick-access-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: var(--space);
+      gap: var(--space-sm);
       color: var(--color-text-subtle);
-      font-size: 0.68rem;
+      font-size: 0.65rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      padding: 0 calc(var(--space) * 0.15);
+      padding: 0 var(--space-xs);
     }
 
     .quick-access-list {
       display: flex;
       flex-wrap: wrap;
-      gap: calc(var(--space) * 0.45);
+      gap: var(--space-sm);
       list-style: none;
       margin: 0;
       padding: 0;
@@ -51,18 +57,18 @@ commandsTemplate.innerHTML = `
     .quick-link {
       display: inline-flex;
       align-items: center;
-      gap: 0.45rem;
-      padding: calc(var(--space) * 0.45) calc(var(--space) * 0.7);
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-sm);
       border: 1px solid var(--color-border);
-      border-radius: 999px;
+      border-radius: var(--border-radius-full);
       background: color-mix(in srgb, var(--color-surface-elevated) 70%, transparent);
       color: var(--color-text-subtle);
       text-decoration: none;
       transition:
-        border-color var(--transition-speed) var(--transition-easing),
-        color var(--transition-speed) var(--transition-easing),
-        background var(--transition-speed) var(--transition-easing),
-        transform var(--transition-speed-fast) var(--transition-easing);
+        border-color var(--duration-normal) var(--ease-spring),
+        color var(--duration-normal) var(--ease-spring),
+        background var(--duration-normal) var(--ease-spring),
+        transform var(--duration-fast) var(--ease-spring);
     }
 
     .quick-link:hover,
@@ -82,19 +88,19 @@ commandsTemplate.innerHTML = `
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 1.4rem;
-      height: 1.4rem;
-      border-radius: 999px;
+      width: 1.3rem;
+      height: 1.3rem;
+      border-radius: var(--border-radius-full);
       border: 1px solid var(--color-accent);
       color: var(--color-accent);
-      font-size: 0.68rem;
+      font-size: 0.62rem;
       font-weight: var(--font-weight-bold);
       line-height: 1;
       flex-shrink: 0;
     }
 
     .quick-name {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
     }
@@ -110,28 +116,36 @@ commandsTemplate.innerHTML = `
       border: 1px solid var(--color-border);
       border-radius: var(--border-radius);
       overflow: hidden;
-      animation: gridFadeIn 0.25s var(--transition-easing) forwards;
+      opacity: 0;
+      transform: translateY(4px);
+      animation: gridFadeIn var(--duration-slow) var(--ease-spring) forwards;
     }
 
     @keyframes gridFadeIn {
-      from { opacity: 0; transform: translateY(2px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { 
+        opacity: 0; 
+        transform: translateY(4px); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0); 
+      }
     }
 
     .command {
       display: flex;
-      gap: calc(var(--space) * 0.6);
+      gap: var(--space-sm);
       outline: 0;
-      padding: calc(var(--space) * 0.8) calc(var(--space) * 1);
+      padding: var(--space-md);
       position: relative;
       text-decoration: none;
-      min-height: 48px;
+      min-height: 44px;
       align-items: center;
       background: var(--color-background);
       transition: 
-        background var(--transition-speed) var(--transition-easing),
-        transform var(--transition-speed-fast) var(--transition-easing),
-        box-shadow var(--transition-speed) var(--transition-easing);
+        background var(--duration-normal) var(--ease-spring),
+        transform var(--duration-fast) var(--ease-spring),
+        box-shadow var(--duration-normal) var(--ease-spring);
     }
 
     .command:hover {
@@ -155,8 +169,8 @@ commandsTemplate.innerHTML = `
     }
 
     .command:active {
-      transform: scale(0.985);
-      transition: transform 80ms var(--transition-easing);
+      transform: scale(0.98);
+      transition: transform var(--duration-fast) var(--ease-spring);
       background: var(--color-accent-subtle);
     }
 
@@ -178,27 +192,27 @@ commandsTemplate.innerHTML = `
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 1.8rem;
-      height: 1.8rem;
+      width: 1.7rem;
+      height: 1.7rem;
       font-weight: var(--font-weight-bold);
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       letter-spacing: 0.04em;
       background: transparent;
       border: 1px solid var(--color-accent);
       border-radius: var(--border-radius);
       flex-shrink: 0;
       transition: 
-        all var(--transition-speed) var(--transition-easing),
-        box-shadow var(--transition-speed) var(--transition-easing);
+        all var(--duration-normal) var(--ease-spring),
+        box-shadow var(--duration-normal) var(--ease-spring);
     }
 
     .name {
       color: var(--color-text-subtle);
       transition: 
-        color var(--transition-speed) var(--transition-easing),
-        transform var(--transition-speed) var(--transition-easing);
+        color var(--duration-normal) var(--ease-spring),
+        transform var(--duration-normal) var(--ease-spring);
       letter-spacing: 0.03em;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       text-transform: uppercase;
       white-space: nowrap;
       overflow: hidden;
@@ -216,7 +230,7 @@ commandsTemplate.innerHTML = `
 
     @media (min-width: 900px) {
       .command {
-        padding: calc(var(--space) * 0.9) calc(var(--space) * 1.1);
+        padding: var(--space-md) var(--space-lg);
       }
     }
   </style>
@@ -335,7 +349,7 @@ export class Commands extends HTMLElement {
 
     if (count === 0) {
       commandsContainer.style.display = 'none';
-      quickAccess.hidden = true;
+      quickAccess.style.display = 'none';
       return;
     }
 
@@ -354,7 +368,7 @@ export class Commands extends HTMLElement {
 
     if (count === 0) {
       commandsContainer.style.display = 'none';
-      quickAccess.hidden = true;
+      quickAccess.style.display = 'none';
       return;
     }
 
@@ -363,10 +377,12 @@ export class Commands extends HTMLElement {
     this.#updateGridStyles(count);
     commandsContainer.style.display = 'grid';
 
-    // Retrigger animation
+    // Retrigger animations
     commandsContainer.style.animation = 'none';
+    quickAccess.style.animation = 'none';
     commandsContainer.offsetHeight; /* trigger reflow */
     commandsContainer.style.animation = '';
+    quickAccess.style.animation = '';
   }
 
   #renderQuickAccess() {
@@ -387,10 +403,11 @@ export class Commands extends HTMLElement {
     quickAccessList.replaceChildren();
 
     if (items.length === 0) {
-      quickAccess.hidden = true;
+      quickAccess.style.display = 'none';
       return;
     }
 
+    quickAccess.style.display = 'flex';
     quickAccessTitle.textContent = recent.length > 0 ? 'Recent' : 'Popular';
 
     const fragment = document.createDocumentFragment();

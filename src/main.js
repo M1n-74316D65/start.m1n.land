@@ -1,34 +1,6 @@
 import './styles/variables.css';
 import { workspaceManager } from './lib/WorkspaceManager.js';
 
-function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js').then(
-        (registration) => {
-          console.log(
-            'ServiceWorker registration successful:',
-            registration.scope
-          );
-        },
-        (error) => {
-          console.log('ServiceWorker registration failed:', error);
-        }
-      );
-    });
-
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'CACHE_UPDATED') {
-        console.log('PWA cache updated successfully');
-      }
-
-      if (event.data && event.data.type === 'SW_ACTIVATED') {
-        console.log('Service worker updated, refresh to apply');
-      }
-    });
-  }
-}
-
 function checkForSWUpdate() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistration().then((registration) => {
@@ -45,6 +17,19 @@ function updatePWACache() {
       type: 'UPDATE_CACHE',
     });
     console.log('PWA cache update requested');
+  }
+}
+
+function initOfflineDetection() {
+  if ('onLine' in navigator) {
+    window.addEventListener('offline', () => {
+      document.body.classList.add('offline');
+      console.log('Offline mode active');
+    });
+    window.addEventListener('online', () => {
+      document.body.classList.remove('offline');
+      console.log('Back online');
+    });
   }
 }
 
@@ -116,8 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  registerServiceWorker();
   checkForSWUpdate();
+  initOfflineDetection();
   initKeyboardShortcuts();
   initThemeListener();
   initPWAInstall();
