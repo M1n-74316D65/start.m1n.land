@@ -1,5 +1,3 @@
-import { workspaceManager } from '../lib/WorkspaceManager.js';
-
 const clockTemplate = document.createElement('template');
 clockTemplate.innerHTML = `
   <style>
@@ -7,29 +5,17 @@ clockTemplate.innerHTML = `
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: var(--space-xs);
+      gap: var(--space-sm);
       margin-bottom: var(--space-lg);
       text-align: center;
     }
 
-    .greeting-line {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
+    .greeting {
       color: var(--color-text-subtle);
       font-size: 0.72rem;
       font-weight: var(--font-weight-normal);
       letter-spacing: 0.08em;
       text-transform: uppercase;
-    }
-
-    .greeting {
-      color: inherit;
-    }
-
-    .workspace-status {
-      color: var(--color-accent);
-      letter-spacing: 0.12em;
     }
 
     .time {
@@ -51,10 +37,7 @@ clockTemplate.innerHTML = `
 
   </style>
   <div class="clock-container">
-    <div class="greeting-line">
-      <span class="greeting"></span>
-      <span class="workspace-status"></span>
-    </div>
+    <span class="greeting"></span>
     <time class="time"></time>
     <span class="date"></span>
   </div>
@@ -64,12 +47,10 @@ export class Clock extends HTMLElement {
   #greeting;
   #time;
   #date;
-  #workspaceStatus;
   #interval;
   #lastHours = -1;
   #lastMinutes = -1;
   #lastDate = '';
-  #boundWorkspaceChange;
 
   constructor() {
     super();
@@ -78,28 +59,12 @@ export class Clock extends HTMLElement {
     this.#greeting = this.shadowRoot.querySelector('.greeting');
     this.#time = this.shadowRoot.querySelector('.time');
     this.#date = this.shadowRoot.querySelector('.date');
-    this.#workspaceStatus = this.shadowRoot.querySelector('.workspace-status');
-    this.#updateWorkspaceStatus();
     this.#updateClock();
     this.#interval = setInterval(() => this.#updateClock(), 1000);
-    this.#boundWorkspaceChange = () => {
-      this.#updateWorkspaceStatus();
-    };
-    window.addEventListener('workspacechange', this.#boundWorkspaceChange);
   }
 
   disconnectedCallback() {
     if (this.#interval) clearInterval(this.#interval);
-    if (this.#boundWorkspaceChange) {
-      window.removeEventListener('workspacechange', this.#boundWorkspaceChange);
-    }
-  }
-
-  #updateWorkspaceStatus() {
-    if (!this.#workspaceStatus) return;
-
-    const workspaceName = workspaceManager.activeWorkspace?.name || 'Personal';
-    this.#workspaceStatus.textContent = `${workspaceName} ready`;
   }
 
   #updateClock() {
