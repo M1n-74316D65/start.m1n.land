@@ -20,8 +20,8 @@ export const COMMANDS = new Map([
   [
     'G',
     {
-      name: 'Proton Mail',
-      url: 'https://mail.proton.me',
+      name: 'Posteo',
+      url: 'https://posteo.de/webmail/',
       workspace: 'personal',
     },
   ],
