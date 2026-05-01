@@ -27,40 +27,28 @@ searchTemplate.innerHTML = `
       top: 0;
       width: 100%;
       opacity: 0;
-      transition: opacity var(--duration-normal) var(--ease-spring);
+      transform: scale(0.96);
+      transition: 
+        opacity var(--duration-slow) var(--ease-spring),
+        transform var(--duration-slow) var(--ease-spring);
     }
 
     .dialog::backdrop {
-      background: color-mix(in srgb, var(--color-background) 75%, transparent);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      background: color-mix(in srgb, var(--color-background) 80%, transparent);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       opacity: 0;
+      transition: opacity var(--duration-normal) var(--ease-spring);
     }
 
     .dialog[open]::backdrop {
-      animation: backdropIn var(--duration-normal) var(--ease-spring) forwards;
-    }
-
-    @keyframes backdropIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      opacity: 1;
     }
 
     .dialog[open] {
       display: flex;
       opacity: 1;
-      animation: dialogIn var(--duration-slow) var(--ease-spring) forwards;
-    }
-
-    @keyframes dialogIn {
-      from {
-        opacity: 0;
-        transform: scale(0.96);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+      transform: scale(1);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -89,27 +77,97 @@ searchTemplate.innerHTML = `
       gap: var(--space-sm);
     }
 
+    .input-container {
+      position: relative;
+      width: 100%;
+    }
+
     .input {
       color: var(--color-text);
       font-size: clamp(1.35rem, 3.8vw, 1.9rem);
       font-weight: var(--font-weight-bold);
-      padding: 0.2em 0.45em;
+      padding: 0.2em 2.2em 0.2em 0.45em;
       text-align: center;
       width: 100%;
       letter-spacing: 0.02em;
       background: transparent;
       border: 2px solid transparent;
       border-bottom-color: var(--color-border);
-      transition: border-color var(--duration-normal) var(--ease-spring);
+      transition: 
+        border-color var(--duration-normal) var(--ease-spring),
+        box-shadow var(--duration-normal) var(--ease-spring);
     }
 
     .input:focus {
       border-bottom-color: var(--color-accent);
+      box-shadow: 0 2px 8px var(--color-accent-glow);
     }
 
     .input::placeholder {
       color: var(--color-text-subtle);
-      opacity: 0.4;
+      opacity: 0.5;
+    }
+
+    .clear-btn {
+      position: absolute;
+      right: 0.4em;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1.4em;
+      height: 1.4em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: var(--color-text-muted);
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: 
+        opacity var(--duration-fast) var(--ease-spring),
+        background var(--duration-fast) var(--ease-spring),
+        color var(--duration-fast) var(--ease-spring);
+    }
+
+    .clear-btn:visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .clear-btn:hover {
+      background: var(--color-accent-subtle);
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+
+    .clear-btn:active {
+      transform: translateY(-50%) scale(0.9);
+    }
+
+    .spinner {
+      position: absolute;
+      right: 0.4em;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1.2em;
+      height: 1.2em;
+      border: 2px solid transparent;
+      border-top-color: var(--color-accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-fast) var(--ease-spring);
+    }
+
+    .spinner:visible {
+      opacity: 1;
+    }
+
+    @keyframes spin {
+      to { transform: translateY(-50%) rotate(360deg); }
     }
 
     .suggestions {
@@ -124,13 +182,19 @@ searchTemplate.innerHTML = `
       padding: 0;
       gap: var(--space-xs);
       min-height: 2.4em;
+      max-width: 100%;
+    }
+
+    .suggestions-wrapper {
+      width: 100%;
+      max-width: 34rem;
     }
 
     .suggestion {
       color: var(--color-text-muted);
       cursor: pointer;
-      font-size: 0.68rem;
-      padding: var(--space-xs) var(--space-sm);
+      font-size: 0.72rem;
+      padding: var(--space-sm) var(--space-md);
       position: relative;
       transition: 
         all var(--duration-normal) var(--ease-spring),
@@ -139,12 +203,14 @@ searchTemplate.innerHTML = `
       z-index: 1;
       border-radius: var(--border-radius);
       outline: 0;
-      background: transparent;
-      border: 1px solid transparent;
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
       letter-spacing: 0.06em;
-      opacity: 0;
       transform: translateY(-4px);
       animation: suggestionIn var(--duration-normal) var(--ease-spring) forwards;
+      min-width: fit-content;
+      min-height: 2.2em;
+      touch-action: manipulation;
     }
 
     .suggestion:nth-child(1) { animation-delay: 0.02s; }
@@ -154,16 +220,15 @@ searchTemplate.innerHTML = `
 
     @keyframes suggestionIn {
       to {
-        opacity: 1;
         transform: translateY(0);
       }
     }
 
     .suggestion:focus-visible,
     .suggestion:hover {
-      color: var(--color-accent);
+      color: var(--color-text);
       border-color: var(--color-accent);
-      background: var(--color-accent-subtle);
+      background: var(--color-focus);
       transform: translateY(-1px);
       box-shadow: 0 4px 12px var(--color-accent-glow);
     }
@@ -173,7 +238,7 @@ searchTemplate.innerHTML = `
     }
 
     .suggestion:active {
-      transform: scale(0.97);
+      transform: translateY(0) scale(0.98);
       transition: transform var(--duration-fast) var(--ease-spring);
     }
 
@@ -188,24 +253,35 @@ searchTemplate.innerHTML = `
       color: var(--color-accent);
     }
 
-    @media (min-width: 700px) {
+    @media (min-width: 600px) {
       .suggestions {
         flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .suggestion {
+        font-size: 0.68rem;
       }
     }
   </style>
     <dialog class="dialog">
     <form autocomplete="off" class="form" method="dialog" spellcheck="false">
       <div class="input-wrapper">
-        <input
-          class="input"
-          aria-label="Search"
-          title="search"
-          type="text"
-          placeholder="Command, search, or URL"
-        />
+        <div class="input-container">
+          <input
+            class="input"
+            aria-label="Search"
+            title="search"
+            type="text"
+            placeholder="Type command or search"
+          />
+          <button type="button" class="clear-btn" aria-label="Clear">×</button>
+          <div class="spinner" aria-hidden="true"></div>
+        </div>
       </div>
-      <menu class="suggestions"></menu>
+      <div class="suggestions-wrapper">
+        <menu class="suggestions"></menu>
+      </div>
     </form>
   </dialog>
 `;
@@ -225,8 +301,11 @@ export class Search extends HTMLElement {
   #form;
   #input;
   #suggestions;
+  #clearBtn;
+  #spinner;
   #activeWorkspaceId;
   #previousFocus;
+  #isLoading = false;
 
   constructor() {
     super();
@@ -236,6 +315,8 @@ export class Search extends HTMLElement {
     this.#form = this.shadowRoot.querySelector('.form');
     this.#input = this.shadowRoot.querySelector('.input');
     this.#suggestions = this.shadowRoot.querySelector('.suggestions');
+    this.#clearBtn = this.shadowRoot.querySelector('.clear-btn');
+    this.#spinner = this.shadowRoot.querySelector('.spinner');
     this.#activeWorkspaceId = workspaceManager.activeWorkspaceId;
     this.#initializeEventListeners();
   }
@@ -248,6 +329,7 @@ export class Search extends HTMLElement {
   #boundInput = Search.#debounce(this.#onInput.bind(this), 300);
   #boundSuggestionClick = this.#onSuggestionClick.bind(this);
   #boundKeydown = this.#onKeydown.bind(this);
+  #boundClear = this.#onClear.bind(this);
   #boundWorkspaceChange = (e) => {
     this.#activeWorkspaceId = e.detail.workspaceId;
   };
@@ -256,6 +338,7 @@ export class Search extends HTMLElement {
     this.#form.addEventListener('submit', this.#boundSubmit, false);
     this.#input.addEventListener('input', this.#boundInput);
     this.#suggestions.addEventListener('click', this.#boundSuggestionClick);
+    this.#clearBtn.addEventListener('click', this.#boundClear);
     document.addEventListener('keydown', this.#boundKeydown);
     window.addEventListener('workspacechange', this.#boundWorkspaceChange);
   }
@@ -264,6 +347,7 @@ export class Search extends HTMLElement {
     this.#form.removeEventListener('submit', this.#boundSubmit);
     this.#input.removeEventListener('input', this.#boundInput);
     this.#suggestions.removeEventListener('click', this.#boundSuggestionClick);
+    this.#clearBtn.removeEventListener('click', this.#boundClear);
     document.removeEventListener('keydown', this.#boundKeydown);
     window.removeEventListener('workspacechange', this.#boundWorkspaceChange);
   }
@@ -404,8 +488,19 @@ export class Search extends HTMLElement {
     return { query, search: query, url };
   }
 
+  #setLoading(loading) {
+    this.#isLoading = loading;
+    this.#spinner.toggleAttribute('visible', loading);
+  }
+
+  #updateClearBtn() {
+    this.#clearBtn.toggleAttribute('visible', this.#input.value.length > 0);
+  }
+
   #close() {
     this.#input.value = '';
+    this.#updateClearBtn();
+    this.#setLoading(false);
     this.#input.blur();
     this.#dialog.style.opacity = '0';
 
@@ -431,6 +526,7 @@ export class Search extends HTMLElement {
     }
 
     this.#input.value = initialValue;
+    this.#updateClearBtn();
     this.#input.focus();
 
     if (initialValue) {
@@ -468,6 +564,8 @@ export class Search extends HTMLElement {
   }
 
   async #onInput() {
+    this.#updateClearBtn();
+    
     const workspaceCommands = workspaceManager.getCommandsForWorkspace(
       this.#activeWorkspaceId
     );
@@ -486,6 +584,7 @@ export class Search extends HTMLElement {
     let suggestions = result?.command?.suggestions ?? [];
 
     if (parsedQuery.search && suggestions.length < CONFIG.suggestionLimit) {
+      this.#setLoading(true);
       const ddgSuggestions = await Search.#fetchDuckDuckGoSuggestions(
         parsedQuery.search
       );
@@ -493,8 +592,10 @@ export class Search extends HTMLElement {
       // Re-check input hasn't changed during async fetch
       if (
         Search.#compareKey(this.#input.value) !== Search.#compareKey(inputValue)
-      )
+      ) {
+        this.#setLoading(false);
         return;
+      }
 
       suggestions = suggestions.concat(
         parsedQuery.key
@@ -503,6 +604,7 @@ export class Search extends HTMLElement {
             )
           : ddgSuggestions
       );
+      this.#setLoading(false);
     }
 
     const filteredSuggestions = CONFIG.commandCaseSensitive
@@ -536,7 +638,11 @@ export class Search extends HTMLElement {
     }
 
     if (e.key === 'Escape') {
-      this.#close();
+      if (this.#input.value) {
+        this.#onClear();
+      } else {
+        this.#close();
+      }
       return;
     }
 
@@ -560,6 +666,13 @@ export class Search extends HTMLElement {
     const meta = e.metaKey ? 'meta-' : '';
     const shift = e.shiftKey ? 'shift-' : '';
     return `${alt}${ctrl}${meta}${shift}${e.key}`;
+  }
+
+  #onClear() {
+    this.#input.value = '';
+    this.#updateClearBtn();
+    this.#suggestions.replaceChildren();
+    this.#input.focus();
   }
 
   #onSubmit() {

@@ -2,7 +2,7 @@ export const CONFIG = {
   commandPathDelimiter: '/',
   commandSearchDelimiter: ' ',
   commandCaseSensitive: false,
-  defaultSearchTemplate: 'https://www.google.com/search?q={}',
+  defaultSearchTemplate: 'https://search.brave.com/search?q={}',
   openLinksInNewTab: false,
   suggestionLimit: 4,
   defaultWorkspace: 'personal',
