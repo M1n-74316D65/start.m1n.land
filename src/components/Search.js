@@ -84,44 +84,44 @@ searchTemplate.innerHTML = `
 
     .input {
       color: var(--color-text);
-      font-size: clamp(1.35rem, 3.8vw, 1.9rem);
-      font-weight: var(--font-weight-bold);
-      padding: 0.2em 2.2em 0.2em 0.45em;
+      font-family: var(--font-family);
+      font-size: clamp(1.25rem, 3.2vw, 1.6rem);
+      font-weight: var(--font-weight-normal);
+      padding: var(--space-sm) var(--space-md);
       text-align: center;
       width: 100%;
-      letter-spacing: 0.02em;
-      background: transparent;
-      border: 2px solid transparent;
-      border-bottom-color: var(--color-border);
+      letter-spacing: var(--letter-spacing);
+      background: var(--color-surface-elevated);
+      border: none;
+      border-radius: var(--border-radius);
+      box-shadow: inset 0 0 0 1px var(--color-border);
       transition: 
-        border-color var(--duration-normal) var(--ease-spring),
         box-shadow var(--duration-normal) var(--ease-spring);
     }
 
     .input:focus {
-      border-bottom-color: var(--color-accent);
-      box-shadow: 0 2px 8px var(--color-accent-glow);
+      box-shadow: inset 0 0 0 1px var(--color-accent), 0 0 0 2px var(--color-accent-glow);
+      outline: none;
     }
 
     .input::placeholder {
-      color: var(--color-text-subtle);
-      opacity: 0.5;
+      color: var(--color-text-muted);
+      opacity: 0.7;
     }
 
     .clear-btn {
       position: absolute;
-      right: 0.4em;
+      right: var(--space-sm);
       top: 50%;
       transform: translateY(-50%);
-      width: 1.4em;
-      height: 1.4em;
+      width: 1.2em;
+      height: 1.2em;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 50%;
+      border-radius: var(--border-radius-sm);
       color: var(--color-text-muted);
       background: transparent;
-      border: 1px solid transparent;
       cursor: pointer;
       opacity: 0;
       pointer-events: none;
@@ -139,20 +139,19 @@ searchTemplate.innerHTML = `
     .clear-btn:hover {
       background: var(--color-accent-subtle);
       color: var(--color-accent);
-      border-color: var(--color-accent);
     }
 
     .clear-btn:active {
-      transform: translateY(-50%) scale(0.9);
+      transform: translateY(-50%) scale(0.95);
     }
 
     .spinner {
       position: absolute;
-      right: 0.4em;
+      right: var(--space-sm);
       top: 50%;
       transform: translateY(-50%);
-      width: 1.2em;
-      height: 1.2em;
+      width: 1em;
+      height: 1em;
       border: 2px solid transparent;
       border-top-color: var(--color-accent);
       border-radius: 50%;
